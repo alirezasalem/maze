@@ -42,12 +42,11 @@
       border-bottom:1px solid #ffffff14; border-left:1px solid #ffffff14; border-right:1px solid #ffffff14
     }
     .spacer{flex:1}
-    select,button{appearance:none; border:none; outline:none; color:var(--text); font-weight:600}
-    select{
-      background:#0e1030; border:1px solid #ffffff26; border-radius:10px; padding:6px 10px; cursor:pointer;
-      box-shadow: inset 0 0 0 1px #0006, 0 6px 12px #0004; font-size:14px; min-width:110px
-    }
+    button{appearance:none; border:none; outline:none; color:var(--text); font-weight:600}
     button{border-radius:10px; padding:8px 12px; cursor:pointer; background: linear-gradient(180deg, #3d9bff, #516dff); box-shadow: 0 6px 14px #0006, inset 0 1px 0 #ffffff22; white-space:nowrap}
+
+    /* Shuffle: distinct teal/green so it's clearly different */
+    #shuffle{ background: linear-gradient(180deg, #34d399, #059669); }
 
     .pill{
       padding:6px 8px; border-radius:999px; font-variant-numeric:tabular-nums;
@@ -55,14 +54,26 @@
       display:flex; align-items:center; gap:6px; font-size:13px
     }
 
+    /* Custom Difficulty dropdown (no native Android picker) */
+    .dd{ position:relative }
+    .dd > button{ display:flex; align-items:center; gap:8px; background:#0e1030; border:1px solid #ffffff26; padding:6px 10px; border-radius:10px }
+    .dd > button:after{ content:'▾'; opacity:.9 }
+    .dd .menu{ position:absolute; top:calc(100% + 6px); left:0; background:#0f1230; border:1px solid #ffffff26; border-radius:12px; box-shadow:0 12px 30px #0008; padding:6px; min-width:160px; z-index:10 }
+    .dd .menu[hidden]{ display:none }
+    .dd .menu button{ display:flex; width:100%; justify-content:space-between; background:transparent; border:0; padding:8px 10px; border-radius:8px }
+    .dd .menu button:hover, .dd .menu button[aria-selected="true"]{ background:#1a1f52 }
+    .dd .tag{ opacity:.7; font-size:12px }
+
     /* Bottom on‑screen arrow pad (foldable) */
     .controls{
       position:relative; z-index:5; padding:10px 12px calc(10px + var(--safe-bottom));
-      display:flex; align-items:center; justify-content:center;
+      display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px;
       background: rgba(21,25,54,0.86); /* replaced color-mix */
       backdrop-filter: blur(8px);
       border-radius:16px 16px 0 0; border-top:1px solid #ffffff18; box-shadow:0 -10px 30px #0006
     }
+    .controls header{ display:flex; align-items:center; gap:8px; font-size:12px; opacity:.9 }
+    .controls header button{ background:#0e1030; padding:6px 10px }
     /* hidden state removes the entire row so it never overlays the game */
     .controls[hidden]{ display:none }
 
@@ -75,8 +86,9 @@
     .btn-h{ background: linear-gradient(180deg, #2a2d66, #1b1e4e) }  /* left/right: indigo */
 
     /* Arrow peek bar (collapsed state) */
-    .peek{ position:relative; z-index:5; display:flex; align-items:center; justify-content:center; height:18px; padding-bottom:calc(6px + var(--safe-bottom)); }
+    .peek{ position:relative; z-index:5; display:flex; align-items:center; justify-content:center; height:18px; padding-bottom:calc(6px + var(--safe-bottom)); gap:6px }
     .peek button{ background:transparent; border:none; color:#9fb6ff; font-size:16px; line-height:1; padding:0; cursor:pointer; opacity:.85 }
+    .peek span{ color:#9fb6ff; opacity:.9; user-select:none }
     .peek button:focus{ outline:2px solid #6ea0ff55; outline-offset:2px }
 
     /* End banner with animated entrance */
@@ -96,15 +108,17 @@
 <body>
   <div class="wrap">
     <div class="hud">
-      <div>
-        <!-- removed text label to keep one row; kept the select -->
-        <select id="difficulty" aria-label="Difficulty">
-          <option value="easy">Easy</option>
-          <option value="medium" selected>Medium</option>
-          <option value="hard">Hard</option>
-          <option value="insane">Insane</option>
-        </select>
+      <!-- Custom difficulty dropdown -->
+      <div class="dd" id="diffDD">
+        <button id="diffBtn" aria-haspopup="menu" aria-expanded="false"><span id="diffLabel">Medium</span></button>
+        <div class="menu" id="diffMenu" role="menu" hidden>
+          <button role="menuitemradio" data-value="easy"><span>Easy</span><span class="tag">Small</span></button>
+          <button role="menuitemradio" data-value="medium" aria-selected="true"><span>Medium</span><span class="tag">Default</span></button>
+          <button role="menuitemradio" data-value="hard"><span>Hard</span><span class="tag">Bigger</span></button>
+          <button role="menuitemradio" data-value="insane"><span>Insane</span><span class="tag">Huge</span></button>
+        </div>
       </div>
+
       <div class="pill"><strong>Left:</strong> <span id="left">0</span></div>
       <div class="spacer"></div>
       <button id="shuffle" title="Shuffle maze">Shuffle</button>
@@ -127,6 +141,10 @@
 
     <!-- Foldable arrow pad (hidden by default) -->
     <div class="controls" id="controls" hidden>
+      <header>
+        <span>On‑screen arrows</span>
+        <button id="collapse">Hide controls ▼</button>
+      </header>
       <div class="pad" aria-label="On-screen arrows">
         <span class="sp"></span>
         <button class="btn-v"    data-dx="0" data-dy="-1" aria-label="Move up">▲</button>
@@ -138,7 +156,7 @@
     </div>
 
     <!-- Narrow peek bar when arrows are hidden -->
-    <div class="peek" id="peek"><button id="peekBtn" aria-controls="controls" aria-expanded="false" title="Show arrows">▲</button></div>
+    <div class="peek" id="peek"><button id="peekBtn" aria-controls="controls" aria-expanded="false" title="Show arrows">▲</button><span>Show controls</span></div>
   </div>
 
 <script>
@@ -167,20 +185,24 @@
   window.addEventListener('keydown', initAudio, {once:true});
   document.addEventListener('pointerdown', initAudio, {once:true});
 
-  // ---------- Vector pet & house ----------
+  // ---------- Characters (10 options) ----------
   function drawHead(ctx, x, y, r, a, b){ if(a===undefined)a='#ffffff'; if(b===undefined)b='#d8e7ff';
     var g=ctx.createRadialGradient(x-r*0.3,y-r*0.3,r*0.2,x,y,r);
     g.addColorStop(0,a); g.addColorStop(1,b); ctx.fillStyle=g;
     ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
   }
-  function drawBunny(ctx,x,y,s){
-    var r=s*0.42; drawHead(ctx,x,y,r);
-    ctx.fillStyle='#ffffff';
-    ctx.beginPath(); ctx.ellipse(x-r*0.35,y-r*1.1,r*0.28,r*0.5,-0.2,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(x+r*0.35,y-r*1.1,r*0.28,r*0.5, 0.2,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#263238'; ctx.beginPath();
-    ctx.arc(x-r*0.3,y-r*0.05,r*0.08,0,Math.PI*2); ctx.arc(x+r*0.3,y-r*0.05,r*0.08,0,Math.PI*2); ctx.fill();
-  }
+  function drawBunny(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r); ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.ellipse(x-r*0.35,y-r*1.1,r*0.28,r*0.5,-0.2,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(x+r*0.35,y-r*1.1,r*0.28,r*0.5, 0.2,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#263238'; ctx.beginPath(); ctx.arc(x-r*0.3,y-r*0.05,r*0.08,0,Math.PI*2); ctx.arc(x+r*0.3,y-r*0.05,r*0.08,0,Math.PI*2); ctx.fill(); }
+  function drawCat(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#fff4d6','#ffd18a'); }
+  function drawFox(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#ffd3b0','#ff8c42'); }
+  function drawBear(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#ffe6d1','#a06b49'); }
+  function drawPanda(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#ffffff','#dfe6f0'); ctx.fillStyle='#222'; ctx.beginPath(); ctx.ellipse(x-r*0.38,y-r*0.3,r*0.22,r*0.14,0,0,Math.PI*2); ctx.ellipse(x+r*0.38,y-r*0.3,r*0.22,r*0.14,0,0,Math.PI*2); ctx.fill(); }
+  function drawPenguin(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#dff3ff','#5aa9e6'); }
+  function drawFrog(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#e9ffd6','#5dc255'); }
+  function drawKoala(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#f0f3f8','#9aa4b2'); }
+  function drawPig(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#ffe1ea','#ff9bbb'); }
+  function drawDog(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#fff2e0','#d5a679'); }
+  var CHAR_SET=[drawBunny,drawCat,drawFox,drawBear,drawPanda,drawPenguin,drawFrog,drawKoala,drawPig,drawDog];
+
   function drawHouse(ctx,x,y,s){
     ctx.save(); var w=s*0.72, h=s*0.52;
     ctx.fillStyle='#e3edf9'; ctx.fillRect(x-w/2, y-h/2, w, h);
@@ -221,7 +243,7 @@
 
   var DIFFS={easy:{cols:11,rows:17,braid:0.35}, medium:{cols:15,rows:23,braid:0.35}, hard:{cols:19,rows:29,braid:0.45}, insane:{cols:25,rows:37,braid:0.5}};
 
-  var state={diff:'medium', maze:null, player:{gx:0,gy:0,px:0,py:0,moving:false}, goal:null, moves:0, optimalMoves:0, path:[{x:0,y:0}], optimalPath:[], showOptimal:false, running:false};
+  var state={diff:'medium', maze:null, player:{gx:0,gy:0,px:0,py:0,moving:false}, goal:null, moves:0, optimalMoves:0, path:[{x:0,y:0}], optimalPath:[], showOptimal:false, running:false, drawChar:drawBunny};
 
   // ---------- Canvas ----------
   var mazeCv=document.getElementById('maze'), fxCv=document.getElementById('fx');
@@ -330,7 +352,7 @@
 
     // shadow + pet
     fctx.save(); fctx.fillStyle='#00000040'; fctx.beginPath(); fctx.ellipse(cx, cy+cellSize*0.18, cellSize*0.24, cellSize*0.12, 0, 0, Math.PI*2); fctx.fill(); fctx.restore();
-    drawBunny(fctx, cx, cy+bob, cellSize);
+    state.drawChar(fctx, cx, cy+bob, cellSize);
   }
 
   function drawOptimal(){
@@ -398,6 +420,7 @@
   var controls = document.getElementById('controls');
   var peek = document.getElementById('peek');
   var peekBtn = document.getElementById('peekBtn');
+  var collapseBtn = document.getElementById('collapse');
   var saved = localStorage.getItem('nl_controls_visible');
   function setControlsVisible(v){
     controls.hidden = !v; peek.style.display = v? 'none' : 'flex';
@@ -406,7 +429,22 @@
   }
   setControlsVisible(saved==='1');
   peekBtn.addEventListener('click', function(){ setControlsVisible(true); });
-  controls.addEventListener('dblclick', function(){ setControlsVisible(false); });
+  collapseBtn.addEventListener('click', function(){ setControlsVisible(false); });
+
+  // ---------- Custom Difficulty menu logic ----------
+  var diffBtn = document.getElementById('diffBtn');
+  var diffMenu = document.getElementById('diffMenu');
+  var diffLabel = document.getElementById('diffLabel');
+  function openMenu(){ diffMenu.hidden=false; diffBtn.setAttribute('aria-expanded','true'); }
+  function closeMenu(){ diffMenu.hidden=true; diffBtn.setAttribute('aria-expanded','false'); }
+  function setDifficulty(val){ state.diff = val; var cap = val.charAt(0).toUpperCase()+val.slice(1); diffLabel.textContent = cap; var items=diffMenu.querySelectorAll('[role="menuitemradio"]'); items.forEach(function(it){ it.removeAttribute('aria-selected'); if(it.getAttribute('data-value')===val) it.setAttribute('aria-selected','true'); }); newMaze(); }
+  diffBtn.addEventListener('click', function(){ if(diffMenu.hidden) openMenu(); else closeMenu(); });
+  diffMenu.addEventListener('click', function(e){ var b=e.target.closest('[data-value]'); if(!b) return; setDifficulty(b.getAttribute('data-value')); closeMenu(); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeMenu(); });
+  document.addEventListener('click', function(e){ if(!diffDD.contains(e.target)) closeMenu(); });
+
+  // expose for outside click handler
+  var diffDD = document.getElementById('diffDD');
 
   // ---------- Moves ----------
   function moveAttempt(vec){ var dx=vec[0], dy=vec[1];
@@ -460,7 +498,6 @@
   var leftEl=document.getElementById('left');
   function updateLeft(){ leftEl.textContent = (state.optimalMoves - state.moves); }
 
-  document.getElementById('difficulty').addEventListener('change', function(e){ state.diff=e.target.value; newMaze(); });
   document.getElementById('restart').addEventListener('click', restart);
   document.getElementById('shuffle').addEventListener('click', function(){ newMaze(); });
   againBtn.addEventListener('click', function(){ endEl.classList.remove('show'); document.body.classList.remove('modal-open'); newMaze(); });
@@ -471,6 +508,8 @@
     fitCell(); state.player={gx:0,gy:0,px:0,py:0,moving:false};
     state.goal={x:state.maze.cols-1, y:state.maze.rows-1};
     state.path=[{x:0,y:0}];
+    // pick a random character each round
+    state.drawChar = CHAR_SET[Math.floor(Math.random()*CHAR_SET.length)];
     var sp=shortestPath(); state.optimalMoves=sp.len; state.optimalPath=sp.path;
     state.moves=0; state.showOptimal=false; updateLeft(); drawStatic(); state.running=true;
   }
