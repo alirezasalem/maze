@@ -424,7 +424,13 @@
 
   // Swipe anywhere on the stage (single step per swipe)
   var swStart=null;
-  stage.addEventListener('pointerdown', function(e){ if(e.target.closest('.controls')) return; swStart={x:e.clientX,y:e.clientY,id:e.pointerId}; stage.setPointerCapture(e.pointerId); });
+  stage.addEventListener('pointerdown', function(e){
+    // Ignore any taps on UI (overlay/end card, controls, HUD). Only start a swipe on the canvas.
+    if (e.target.closest('.end') || e.target.closest('.controls') || e.target.closest('.hud')) return;
+    if (e.target.tagName !== 'CANVAS') return;
+    swStart={x:e.clientX,y:e.clientY,id:e.pointerId};
+    stage.setPointerCapture(e.pointerId);
+  });
   stage.addEventListener('pointerup', function(e){
     if(!swStart || e.pointerId!==swStart.id) return; var dx=e.clientX-swStart.x, dy=e.clientY-swStart.y; swStart=null; stage.releasePointerCapture(e.pointerId);
     var dead=14; if(Math.hypot(dx,dy)<dead) return; var ax=Math.abs(dx), ay=Math.abs(dy);
@@ -585,6 +591,14 @@
       var cv=document.createElement('canvas'); cv.width=cv.height=64; var ctx=cv.getContext('2d');
       CHAR_SET.forEach(function(fn){ fn(ctx,32,32,24); });
     }catch(e){ console.error('Character draw failed', e); }
+    // 5) Another round button should start a fresh maze
+    try{
+      var oldMaze = state.maze; // current maze after newMaze()
+      state.player.gx = state.goal.x; state.player.gy = state.goal.y; // force win
+      checkWin();
+      againBtn.click();
+      console.assert(state.running && state.maze !== oldMaze && state.moves === 0, 'Another round starts a new maze and resets state');
+    }catch(err){ console.error('Again button smoke test failed', err); }
   }
 
   window.addEventListener('resize', resize);
