@@ -31,9 +31,19 @@
 
     /* Bottom on‑screen arrows (single mode) */
     .controls{position:relative; z-index:5; padding:12px 12px calc(12px + var(--safe-bottom)); display:flex; align-items:center; justify-content:center; background: color-mix(in srgb, var(--panel) 86%, transparent); backdrop-filter: blur(8px); border-radius:16px 16px 0 0; border-top:1px solid #ffffff18; box-shadow:0 -10px 30px #0006}
-    .pad{ position:relative; width:min(84vw,520px); height:min(30vh,220px); display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap: clamp(8px,2.5vw,16px)}
-    .pad button{ border-radius:16px; font-size: clamp(18px,4.6vw,22px); width:100%; height:100%; background: linear-gradient(180deg, #2a2d66, #1b1e4e); box-shadow:0 8px 18px #0006, inset 0 1px 0 #ffffff22 }
+    .pad{ position:relative; width:min(60vw,380px); height:min(18vh,120px); display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap: clamp(6px,2vw,12px)}
+    .pad button{ border-radius:12px; font-size: clamp(14px,3.6vw,18px); width:100%; height:100%; background: linear-gradient(180deg, #2a2d66, #1b1e4e); box-shadow:0 8px 18px #0006, inset 0 1px 0 #ffffff22 }
     .pad .sp{ visibility:hidden }
+
+    /* End banner */
+    .end{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; z-index:6; }
+    .end.show{ display:flex }
+    .card{ background:#14163aee; border:1px solid #ffffff18; border-radius:16px; padding:16px; width:min(92vw, 520px); text-align:center; box-shadow:0 20px 50px #0009; }
+    .card h2{ margin:0 0 6px; font-size:clamp(18px,4.8vw,28px); letter-spacing:.02em }
+    .card p{ opacity:.9; margin:.25rem 0 .75rem; font-size:clamp(14px,3.6vw,16px) }
+    .card .row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap }
+    .card button{ background: linear-gradient(180deg, #3d9bff, #516dff); }
+    .card .ghost{ background: #0e1030 }
   </style>
 </head>
 <body>
@@ -56,6 +66,16 @@
     <div class="stage" id="stage">
       <canvas id="maze"></canvas>
       <canvas id="fx"></canvas>
+      <div class="end" id="end">
+        <div class="card">
+          <h2 id="endTitle">Well done!</h2>
+          <p id="endDesc">You made it to the den.</p>
+          <div class="row">
+            <button id="again">Another round</button>
+            <button id="dismiss" class="ghost">Close</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="controls">
@@ -76,11 +96,34 @@
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
   const now=()=>performance.now();
   const lerp=(a,b,t)=>a+(b-a)*t; const ease=t=>1-Math.pow(1-t,3);
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
 
   // ---------- Vector pet & den (simple, consistent) ----------
   function drawHead(ctx, x, y, r, a='#ffffff', b='#d8e7ff'){ const g=ctx.createRadialGradient(x-r*0.3,y-r*0.3,r*0.2,x,y,r); g.addColorStop(0,a); g.addColorStop(1,b); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); }
   function drawBunny(ctx,x,y,s){ const r=s*0.42; drawHead(ctx,x,y,r); ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.ellipse(x-r*0.35,y-r*1.1,r*0.28,r*0.5,-0.2,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(x+r*0.35,y-r*1.1,r*0.28,r*0.5, 0.2,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#263238'; ctx.beginPath(); ctx.arc(x-r*0.3,y-r*0.05,r*0.08,0,Math.PI*2); ctx.arc(x+r*0.3,y-r*0.05,r*0.08,0,Math.PI*2); ctx.fill(); }
-  function drawHole(ctx,x,y,s){ ctx.save(); const g=ctx.createRadialGradient(x,y,s*0.1,x,y,s*0.6); g.addColorStop(0,'#111'); g.addColorStop(1,'#0000'); ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(x,y,s*0.55,s*0.36,0,0,Math.PI*2); ctx.fill(); ctx.restore(); }
+  function drawHole(ctx,x,y,s){ // draw a cozy house instead of a hole
+    ctx.save();
+    const w = s*0.72, h = s*0.52;
+    // body
+    ctx.fillStyle = '#e3edf9';
+    ctx.fillRect(x - w/2, y - h/2, w, h);
+    // roof
+    ctx.fillStyle = '#ff6a6a';
+    ctx.beginPath();
+    ctx.moveTo(x - w*0.58, y - h/2);
+    ctx.lineTo(x,           y - h/2 - s*0.38);
+    ctx.lineTo(x + w*0.58, y - h/2);
+    ctx.closePath();
+    ctx.fill();
+    // door
+    ctx.fillStyle = '#1f2545';
+    ctx.fillRect(x - w*0.08, y - h/2 + h*0.56, w*0.16, h*0.44);
+    // windows
+    ctx.fillStyle = '#c7d9ff';
+    ctx.fillRect(x - w*0.28, y - h*0.12, w*0.18, h*0.18);
+    ctx.fillRect(x + w*0.10, y - h*0.12, w*0.18, h*0.18);
+    ctx.restore();
+  }
 
   // ---------- Maze ----------
   class Maze{ constructor(cols,rows,braid=0.35){ this.cols=cols; this.rows=rows; this.grid=Array.from({length:rows},(_,y)=>Array.from({length:cols},(_,x)=>({x,y,walls:[1,1,1,1],v:false}))); this.generate(); this.braid(braid);} cell(x,y){return (this.grid[y]||[])[x]} neighbors(x,y){return [[x,y-1,0,2],[x+1,y,1,3],[x,y+1,2,0],[x-1,y,3,1]].filter(([nx,ny])=>nx>=0&&ny>=0&&nx<this.cols&&ny<this.rows).map(([nx,ny,wi,wj])=>({from:this.cell(x,y),to:this.cell(nx,ny),wi,wj,nx,ny}))} generate(){const st=this.cell(0,0); st.v=true; const stack=[st]; while(stack.length){const cur=stack[stack.length-1]; const n=this.neighbors(cur.x,cur.y).filter(e=>!e.to.v); if(n.length){const p=n[Math.floor(Math.random()*n.length)]; cur.walls[p.wi]=0; p.to.walls[p.wj]=0; p.to.v=true; stack.push(p.to);}else stack.pop();}} braid(p){for(let y=0;y<this.rows;y++){for(let x=0;x<this.cols;x++){if(Math.random()>p)continue; const c=this.cell(x,y); const n=this.neighbors(x,y).filter(e=>c.walls[e.wi]===1); if(!n.length)continue; const pick=n[Math.floor(Math.random()*n.length)]; c.walls[pick.wi]=0; pick.to.walls[pick.wj]=0;}}} }
@@ -93,6 +136,12 @@
   const mazeCv=document.getElementById('maze'), fxCv=document.getElementById('fx');
   const mctx=mazeCv.getContext('2d'), fctx=fxCv.getContext('2d');
   const stage=document.getElementById('stage');
+  const endEl=document.getElementById('end');
+  const endTitle=document.getElementById('endTitle');
+  const endDesc=document.getElementById('endDesc');
+  const againBtn=document.getElementById('again');
+  const dismissBtn=document.getElementById('dismiss');
+
   const DPR=()=>Math.min(2,window.devicePixelRatio||1);
   let cellSize=24, pad=16;
 
@@ -130,11 +179,29 @@
 
   document.getElementById('difficulty').addEventListener('change', e=>{ state.diff=e.target.value; newMaze(); });
   document.getElementById('restart').addEventListener('click', restart);
+  againBtn.addEventListener('click', ()=>{ endEl.classList.remove('show'); newMaze(); });
+  dismissBtn.addEventListener('click', ()=> endEl.classList.remove('show'));
 
   // ---------- Game flow ----------
-  function newMaze(){ const d=DIFFS[state.diff]; state.maze=new Maze(d.cols,d.rows,d.braid); fitCell(); state.player={gx:0,gy:0,px:0,py:0,moving:false}; state.goal={x:state.maze.cols-1,y:state.maze.rows-1}; state.path=[{x:0,y:0}]; const sp=shortestPath(); state.optimalMoves=sp.len; state.optimalPath=sp.path; state.moves=0; state.showOptimal=false; updateLeft(); drawStatic(); state.running=true; }
-  function restart(){ state.player={gx:0,gy:0,px:0,py:0,moving:false}; state.path=[{x:0,y:0}]; state.moves=0; state.showOptimal=false; updateLeft(); }
-  function checkWin(){ if(state.player.gx===state.goal.x && state.player.gy===state.goal.y){ state.running=false; if(state.moves>state.optimalMoves){ state.showOptimal=true; drawStatic(); } } }
+  function newMaze(){ const d=DIFFS[state.diff]; state.maze=new Maze(d.cols,d.rows,d.braid); fitCell(); state.player={gx:0,gy:0,px:0,py:0,moving:false}; state.goal={x:state.maze.cols-1, y:state.maze.rows-1}; state.path=[{x:0,y:0}]; const sp=shortestPath(); state.optimalMoves=sp.len; state.optimalPath=sp.path; state.moves=0; state.showOptimal=false; updateLeft(); drawStatic(); state.running=true; }
+  function restart(){ state.player={gx:0,gy:0,px:0,py:0,moving:false}; state.path=[{x:0,y:0}]; state.moves=0; state.showOptimal=false; endEl.classList.remove('show'); updateLeft(); }
+
+  const WIN_LINES=[
+    'Well done! 🎉', 'Great job! ✨', 'You did it! 🏆', 'Nice! 💫', 'Brilliant! 🌟',
+    'Amazing! 🚀', 'Sweet victory! 😎', 'You found the den! 🐾'
+  ];
+
+  function checkWin(){
+    if(state.player.gx===state.goal.x && state.player.gy===state.goal.y){
+      state.running=false;
+      const over = state.moves>state.optimalMoves;
+      state.showOptimal = over; drawStatic();
+      endTitle.textContent = pick(WIN_LINES);
+      const delta = state.optimalMoves - state.moves;
+      endDesc.textContent = over ? `Optimal path shown in gold (you were ${-delta} moves over).` : 'Perfect path! You matched the optimal route.';
+      endEl.classList.add('show');
+    }
+  }
 
   // ---------- Loop ----------
   let last=now(); function loop(){ const t=now(); last=t; drawStatic(); drawPlayer(t); requestAnimationFrame(loop); }
@@ -148,4 +215,3 @@
 </script>
 </body>
 </html>
-
