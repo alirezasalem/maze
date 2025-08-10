@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0e1128" />
-  <title>Neon Labyrinth — Joystick</title>
+  <title>Neon Labyrinth — Arrows</title>
   <style>
     :root{
       /* Higher-contrast, accessible palette */
@@ -56,7 +56,7 @@
       display:flex; align-items:center; gap:8px; font-size:13px
     }
 
-    /* Bottom joystick */
+    /* Bottom on‑screen arrow pad */
     .controls{
       position:relative; z-index:5; padding:10px 12px calc(10px + var(--safe-bottom));
       display:flex; align-items:center; justify-content:center;
@@ -64,23 +64,13 @@
       backdrop-filter: blur(8px);
       border-radius:16px 16px 0 0; border-top:1px solid #ffffff18; box-shadow:0 -10px 30px #0006
     }
-    .joystick{
-      position:relative; width:min(42vw,260px); aspect-ratio:1/1; touch-action:none;
-    }
-    .joy-base{
-      position:absolute; inset:0; border-radius:50%;
-      background: radial-gradient(60% 60% at 50% 50%, #272e68 0%, #1a1d4f 70%, #13163a 100%);
-      box-shadow: inset 0 2px 10px #0008, 0 10px 24px #0008;
-      border:1px solid #ffffff22;
-    }
-    .joy-thumb{
-      position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-      width:36%; aspect-ratio:1/1; border-radius:50%;
-      background: radial-gradient(55% 55% at 35% 35%, #a6c8ff 0%, #6ea0ff 60%, #3c63ff 100%);
-      box-shadow: 0 8px 18px #0008, inset 0 1px 0 #ffffff66;
-      transition: transform .06s ease;
-      touch-action:none;
-    }
+    .pad{ position:relative; width:min(54vw,340px); height:min(16vh,110px); display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap: clamp(6px,2vw,10px)}
+    .pad .sp{ visibility:hidden }
+    .pad button{ border-radius:12px; font-size: clamp(13px,3.2vw,17px); width:100%; height:100%; box-shadow:0 8px 18px #0006, inset 0 1px 0 #ffffff22; border:1px solid #ffffff1a }
+    .pad button:active{ transform: translateY(1px) }
+    /* Slight color difference: horizontal vs vertical */
+    .btn-v{ background: linear-gradient(180deg, #2a7a7a, #1b5258) }  /* up/down: teal */
+    .btn-h{ background: linear-gradient(180deg, #2a2d66, #1b1e4e) }  /* left/right: indigo */
 
     /* End banner with animated entrance */
     .end{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; z-index:6; background: rgba(8,10,24,.35); backdrop-filter: blur(3px); opacity:0 }
@@ -128,11 +118,15 @@
       </div>
     </div>
 
-    <!-- Centered joystick -->
+    <!-- Centered, compact arrow pad -->
     <div class="controls">
-      <div class="joystick" id="joystick" aria-label="Virtual joystick">
-        <div class="joy-base"></div>
-        <div class="joy-thumb" id="joyThumb"></div>
+      <div class="pad" aria-label="On-screen arrows">
+        <span class="sp"></span>
+        <button class="btn-v"    data-dx="0" data-dy="-1" aria-label="Move up">▲</button>
+        <span class="sp"></span>
+        <button class="btn-h"  data-dx="-1" data-dy="0" aria-label="Move left">◀</button>
+        <button class="btn-v"  data-dx="0" data-dy="1" aria-label="Move down">▼</button>
+        <button class="btn-h" data-dx="1" data-dy="0" aria-label="Move right">▶</button>
       </div>
     </div>
   </div>
@@ -285,10 +279,7 @@
     for(let y=0;y<rows;y++){
       for(let x=0;x<cols;x++){
         const c=state.maze.cell(x,y); const X=ox+x*cellSize, Y=oy+y*cellSize;
-        if(c.walls[0]){mctx.moveTo(X,Y); mctx.lineTo(X+cellSize,Y);}
-        if(c.walls[1]){mctx.moveTo(X+cellSize,Y); mctx.lineTo(X+cellSize,Y+cellSize);}
-        if(c.walls[2]){mctx.moveTo(X,Y+cellSize); mctx.lineTo(X+cellSize,Y+cellSize);}
-        if(c.walls[3]){mctx.moveTo(X,Y); mctx.lineTo(X,Y+cellSize);}
+        if(c.walls[0]){mctx.moveTo(X,Y); mctx.lineTo(X+cellSize,Y);} if(c.walls[1]){mctx.moveTo(X+cellSize,Y); mctx.lineTo(X+cellSize,Y+cellSize);} if(c.walls[2]){mctx.moveTo(X,Y+cellSize); mctx.lineTo(X+cellSize,Y+cellSize);} if(c.walls[3]){mctx.moveTo(X,Y); mctx.lineTo(X,Y+cellSize);}
       }
     }
     mctx.stroke(); mctx.shadowBlur=0;
@@ -374,82 +365,30 @@
     mctx.setLineDash([]); mctx.restore();
   }
 
-  // ---------- Input (Keyboard + Joystick) ----------
+  // ---------- Input (Keyboard + On-screen arrows) ----------
   const KEYMAP={ArrowUp:[0,-1],ArrowRight:[1,0],ArrowDown:[0,1],ArrowLeft:[-1,0],KeyW:[0,-1],KeyD:[1,0],KeyS:[0,1],KeyA:[-1,0]};
 
   // Continuous keyboard movement
   let keyHeld=null, keyLoop=null;
   window.addEventListener('keydown', e=>{
-    if(!state.running) return;
-    const d=KEYMAP[e.code]; if(!d) return;
-    e.preventDefault();
-    if(!keyHeld){
-      keyHeld=e.code; moveAttempt(d);
-      keyLoop=setInterval(()=>moveAttempt(d), 160);
-    }
+    if(!state.running) return; const d=KEYMAP[e.code]; if(!d) return; e.preventDefault();
+    if(!keyHeld){ keyHeld=e.code; moveAttempt(d); keyLoop=setInterval(()=>moveAttempt(d), 160); }
   });
-  window.addEventListener('keyup', e=>{
-    if(e.code===keyHeld){ clearInterval(keyLoop); keyLoop=null; keyHeld=null; }
+  window.addEventListener('keyup', e=>{ if(e.code===keyHeld){ clearInterval(keyLoop); keyLoop=null; keyHeld=null; } });
+
+  // On-screen arrows with hold-to-move
+  const padButtons = Array.from(document.querySelectorAll('.pad button'));
+  padButtons.forEach(b=>{
+    let hold=null; const dx=+b.dataset.dx, dy=+b.dataset.dy;
+    const start = ()=>{ moveAttempt([dx,dy]); hold=setInterval(()=>moveAttempt([dx,dy]),160); };
+    const end = ()=>{ if(hold){ clearInterval(hold); hold=null; } };
+    b.addEventListener('pointerdown', e=>{ e.preventDefault(); b.setPointerCapture(e.pointerId); start(); });
+    b.addEventListener('pointerup',   e=>{ b.releasePointerCapture(e.pointerId); end(); });
+    b.addEventListener('pointercancel', end);
+    b.addEventListener('lostpointercapture', end);
+    // Tap/click fallback
+    b.addEventListener('click', ()=> moveAttempt([dx,dy]));
   });
-
-  // Virtual joystick (center bottom)
-  const joy = document.getElementById('joystick');
-  const thumb = document.getElementById('joyThumb');
-  let joyActive=false, joyLoop=null, joyDir=[0,0];
-
-  const joyCenter = ()=> {
-    const r = joy.getBoundingClientRect();
-    return {cx:r.left+r.width/2, cy:r.top+r.height/2, radius:r.width/2};
-  };
-
-  const joySetThumb = (dx,dy, radius)=>{
-    const mag = Math.min(radius*0.65, Math.hypot(dx,dy));
-    const ang = Math.atan2(dy,dx);
-    const tx = Math.cos(ang)*mag, ty = Math.sin(ang)*mag;
-    thumb.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px))`;
-  };
-
-  const vecToDir = (dx,dy)=>{
-    // choose dominant axis; deadzone to avoid jitter
-    const dead = 8;
-    if(Math.abs(dx)<dead && Math.abs(dy)<dead) return [0,0];
-    if(Math.abs(dx) > Math.abs(dy)) return [dx>0?1:-1, 0];
-    return [0, dy>0?1:-1];
-  };
-
-  const joyMoveStart = (clientX, clientY)=>{
-    joyActive=true;
-    const {cx,cy,radius}=joyCenter();
-    const dx = clientX - cx, dy = clientY - cy;
-    joyDir = vecToDir(dx,dy);
-    joySetThumb(dx,dy,radius);
-    moveAttempt(joyDir);
-    joyLoop = setInterval(()=>moveAttempt(joyDir), 160);
-  };
-  const joyMoveUpdate = (clientX, clientY)=>{
-    if(!joyActive) return;
-    const {cx,cy,radius}=joyCenter();
-    const dx = clientX - cx, dy = clientY - cy;
-    const nd = vecToDir(dx,dy);
-    if(nd[0]!==joyDir[0] || nd[1]!==joyDir[1]){
-      joyDir = nd;
-      // fire immediately on direction change for responsiveness
-      moveAttempt(joyDir);
-      if(joyLoop){ clearInterval(joyLoop); joyLoop=setInterval(()=>moveAttempt(joyDir), 160); }
-    }
-    joySetThumb(dx,dy,radius);
-  };
-  const joyMoveEnd = ()=>{
-    joyActive=false; joyDir=[0,0]; thumb.style.transform='translate(-50%,-50%)';
-    clearInterval(joyLoop); joyLoop=null;
-  };
-
-  // Pointer events
-  joy.addEventListener('pointerdown', e=>{ e.preventDefault(); joy.setPointerCapture(e.pointerId); joyMoveStart(e.clientX, e.clientY); });
-  joy.addEventListener('pointermove', e=>{ if(joyActive) joyMoveUpdate(e.clientX, e.clientY); });
-  joy.addEventListener('pointerup',   e=>{ joy.releasePointerCapture(e.pointerId); joyMoveEnd(); });
-  joy.addEventListener('pointercancel', joyMoveEnd);
-  joy.addEventListener('lostpointercapture', joyMoveEnd);
 
   // ---------- Moves ----------
   function moveAttempt([dx,dy]){
