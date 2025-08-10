@@ -106,7 +106,7 @@
 
     /* Generic modal (for first-launch hint) shares same visuals */
     .modal{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; z-index:7; background: rgba(8,10,24,.45); backdrop-filter: blur(3px); opacity:0 }
-    .modal.show{ display:flex; animation: fadeBg .25s ease forwards }
+    .modal.show{ display:flex; opacity:1; animation: fadeBg .25s ease forwards }
   </style>
 </head>
 <body>
@@ -499,12 +499,17 @@
   try{
     var seen = localStorage.getItem('nl_swipe_hint');
     if(seen!=='1'){
+      // ensure it's visible even if animations are disabled
+      hintEl.style.display = 'flex';
+      // force reflow so the animation can apply reliably on some mobile browsers
+      void hintEl.offsetWidth;
       hintEl.classList.add('show');
       document.body.classList.add('modal-open');
     }
     hintOk.addEventListener('click', function(){
       hintEl.classList.remove('show');
       document.body.classList.remove('modal-open');
+      hintEl.style.display = 'none';
       localStorage.setItem('nl_swipe_hint','1');
     });
   }catch(_e){}
