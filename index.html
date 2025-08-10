@@ -15,7 +15,7 @@
       --optimal:#ffd700;               /* gold optimal path */
       --safe-bottom: env(safe-area-inset-bottom);
     }
-    html,body{height:100%}
+    html,body{height:100svh} /* use small viewport units to avoid mobile URL-bar gap */
     body{
       margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
       color:var(--text);
@@ -23,7 +23,7 @@
       overflow:hidden; touch-action:none;
     }
 
-    .wrap{position:relative; width:100vw; height:100vh; display:grid; grid-template-rows:auto 1fr auto}
+    .wrap{position:relative; width:100vw; height:100svh; display:grid; grid-template-rows:auto 1fr auto} /* fill real viewport height on mobile */
 
     /* Stage */
     .stage{position:relative}
@@ -86,7 +86,7 @@
     .btn-h{ background: linear-gradient(180deg, #2a2d66, #1b1e4e) }  /* left/right: indigo */
 
     /* Arrow peek bar (collapsed state) */
-    .peek{ position:relative; z-index:5; display:flex; align-items:center; justify-content:center; height:18px; padding-bottom:calc(6px + var(--safe-bottom)); gap:6px }
+    .peek{ position:relative; z-index:7; display:flex; align-items:center; justify-content:center; height:28px; padding:6px 10px calc(8px + var(--safe-bottom)); gap:8px; background:rgba(21,25,54,0.9); border-top:1px solid #ffffff22; box-shadow:0 -8px 20px #0007 }
     .peek button{ background:transparent; border:none; color:#9fb6ff; font-size:16px; line-height:1; padding:0; cursor:pointer; opacity:.85 }
     .peek span{ color:#9fb6ff; opacity:.9; user-select:none }
     .peek button:focus{ outline:2px solid #6ea0ff55; outline-offset:2px }
@@ -279,8 +279,9 @@
     mctx.setTransform(dpr,0,0,dpr,0,0); fctx.setTransform(dpr,0,0,dpr,0,0);
     fitCell(); drawStatic();
   }
-  function fitCell(){ if(!state.maze) return; var W=stage.clientWidth-pad*2; var H=stage.clientHeight-pad*2; cellSize=Math.max(10, Math.floor(Math.min(W/state.maze.cols, H/state.maze.rows))); }
-  function origin(){ var cols=state.maze.cols, rows=state.maze.rows; return {ox:(stage.clientWidth-cols*cellSize)/2, oy:(stage.clientHeight-rows*cellSize)/2}; }
+  function fitCell(){ if(!state.maze) return; var W=stage.clientWidth, H=stage.clientHeight; // dynamic pad to reduce wasted space on short screens
+    var shortest=Math.min(W,H); pad = shortest<600 ? 8 : 16; var innerW=W-pad*2, innerH=H-pad*2; cellSize=Math.max(10, Math.floor(Math.min(innerW/state.maze.cols, innerH/state.maze.rows))); }
+  function origin(){ var cols=state.maze.cols, rows=state.maze.rows; return {ox:Math.floor((stage.clientWidth-cols*cellSize)/2), oy:Math.floor((stage.clientHeight-rows*cellSize)/2)}; }
 
   // ---------- Particles (stars & sparkles) ----------
   var stars=[]; // {x,y,vx,vy,g,life,t,size}
@@ -309,7 +310,7 @@
     mctx.clearRect(0,0,mazeCv.width,mazeCv.height);
     var cols=state.maze.cols, rows=state.maze.rows; var o=origin(); var ox=o.ox, oy=o.oy;
     var g=mctx.createLinearGradient(ox,oy,ox+cols*cellSize,oy+rows*cellSize); g.addColorStop(0,'#0f123a'); g.addColorStop(1,'#141a46');
-    mctx.fillStyle=g; mctx.fillRect(ox-10,oy-10,cols*cellSize+20,rows*cellSize+20);
+    mctx.fillStyle=g; mctx.fillRect(Math.max(0,ox-10), Math.max(0,oy-10), cols*cellSize+20, rows*cellSize+20);
 
     mctx.lineWidth=2.2; mctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--wall');
     mctx.shadowColor='#86f9ff22'; mctx.shadowBlur=10; mctx.beginPath();
@@ -443,7 +444,10 @@
     peekBtn.setAttribute('aria-expanded', String(v));
     localStorage.setItem('nl_controls_visible', v? '1':'0');
   }
+  // default hidden unless user explicitly opened before
   setControlsVisible(saved==='1');
+  // ensure the peek bar is visible on load (in case CSS/layout raced)
+  peek.style.display = (saved==='1') ? 'none' : 'flex';
   peekBtn.addEventListener('click', function(){ setControlsVisible(true); });
   collapseBtn.addEventListener('click', function(){ setControlsVisible(false); });
 
@@ -457,10 +461,9 @@
   diffBtn.addEventListener('click', function(){ if(diffMenu.hidden) openMenu(); else closeMenu(); });
   diffMenu.addEventListener('click', function(e){ var b=e.target.closest('[data-value]'); if(!b) return; setDifficulty(b.getAttribute('data-value')); closeMenu(); });
   document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeMenu(); });
-  document.addEventListener('click', function(e){ if(!diffDD.contains(e.target)) closeMenu(); });
-
   // expose for outside click handler
   var diffDD = document.getElementById('diffDD');
+  document.addEventListener('click', function(e){ if(!diffDD.contains(e.target)) closeMenu(); });
 
   // ---------- Moves ----------
   function moveAttempt(vec){ var dx=vec[0], dy=vec[1];
@@ -516,7 +519,18 @@
 
   document.getElementById('restart').addEventListener('click', restart);
   document.getElementById('shuffle').addEventListener('click', function(){ newMaze(); });
-  againBtn.addEventListener('click', function(){ endEl.classList.remove('show'); document.body.classList.remove('modal-open'); newMaze(); });
+  // Make the CTA extra-robust on mobile (stop propagation, force-hide overlay)
+  againBtn.addEventListener('click', function(e){
+    e.preventDefault(); e.stopPropagation();
+    // hide overlay first
+    endEl.classList.remove('show');
+    document.body.classList.remove('modal-open');
+    // immediately start a brand‑new maze
+    stars.length = 0; fctx.clearRect(0,0,fxCv.width,fxCv.height);
+    newMaze();
+  });
+  // also respond to Enter/Space for accessibility
+  againBtn.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); againBtn.click(); }});
 
   // ---------- Game flow ----------
   function newMaze(){
@@ -545,7 +559,9 @@
       endTitle.textContent = pick(WIN_LINES);
       var delta = state.optimalMoves - state.moves;
       endDesc.textContent = over ? ('Optimal path shown in gold (you were ' + (-delta) + ' moves over).') : 'Perfect path! You matched the optimal route.';
-      endEl.classList.add('show'); document.body.classList.add('modal-open');
+      endEl.style.display=''; // ensure it's visible
+      endEl.classList.add('show');
+      document.body.classList.add('modal-open');
     }
   }
 
