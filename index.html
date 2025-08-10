@@ -103,6 +103,10 @@
     .card .row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap }
     .card button{ background: linear-gradient(180deg, #3d9bff, #516dff); }
     .card .ghost{ background: #0e1030 }
+
+    /* Generic modal (for first-launch hint) shares same visuals */
+    .modal{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; z-index:7; background: rgba(8,10,24,.45); backdrop-filter: blur(3px); opacity:0 }
+    .modal.show{ display:flex; animation: fadeBg .25s ease forwards }
   </style>
 </head>
 <body>
@@ -137,6 +141,16 @@
           </div>
         </div>
       </div>
+      <!-- First-launch swipe/touch hint -->
+      <div class="modal" id="hint">
+        <div class="card">
+          <h2>Quick tip ✋</h2>
+          <p>On phones and tablets you can <strong>swipe</strong> anywhere on the board to move the animal. You can also show on‑screen arrows from the bottom bar.</p>
+          <div class="row">
+            <button id="hintOk">Got it</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Foldable arrow pad (hidden by default) -->
@@ -156,7 +170,9 @@
     </div>
 
     <!-- Narrow peek bar when arrows are hidden -->
-    <div class="peek" id="peek"><button id="peekBtn" aria-controls="controls" aria-expanded="false" title="Show arrows">▲</button><span>Show controls</span></div>
+    <div class="peek" id="peek" role="button" tabindex="0" aria-controls="controls" aria-expanded="false" title="Show controls">
+      <button id="peekBtn" aria-hidden="true" tabindex="-1">▲</button><span>Show controls</span>
+    </div>
   </div>
 
 <script>
@@ -425,8 +441,8 @@
   // Swipe anywhere on the stage (single step per swipe)
   var swStart=null;
   stage.addEventListener('pointerdown', function(e){
-    // Ignore any taps on UI (overlay/end card, controls, HUD). Only start a swipe on the canvas.
-    if (e.target.closest('.end') || e.target.closest('.controls') || e.target.closest('.hud')) return;
+    // Ignore any taps on UI (overlay/end card, first-launch modal, controls, HUD). Only start a swipe on the canvas.
+    if (e.target.closest('.end') || e.target.closest('.modal') || e.target.closest('.controls') || e.target.closest('.hud')) return;
     if (e.target.tagName !== 'CANVAS') return;
     swStart={x:e.clientX,y:e.clientY,id:e.pointerId};
     stage.setPointerCapture(e.pointerId);
@@ -444,17 +460,25 @@
   var peek = document.getElementById('peek');
   var peekBtn = document.getElementById('peekBtn');
   var collapseBtn = document.getElementById('collapse');
+  var hintEl = document.getElementById('hint');
+  var hintOk = document.getElementById('hintOk');
   var saved = localStorage.getItem('nl_controls_visible');
   function setControlsVisible(v){
     controls.hidden = !v; peek.style.display = v? 'none' : 'flex';
+    peek.setAttribute('aria-expanded', String(v));
     peekBtn.setAttribute('aria-expanded', String(v));
     localStorage.setItem('nl_controls_visible', v? '1':'0');
+    // After layout changes, recalc canvas size on next frame
+    requestAnimationFrame(resize);
   }
   // default hidden unless user explicitly opened before
   setControlsVisible(saved==='1');
   // ensure the peek bar is visible on load (in case CSS/layout raced)
   peek.style.display = (saved==='1') ? 'none' : 'flex';
   peekBtn.addEventListener('click', function(){ setControlsVisible(true); });
+  // Make the whole bar clickable & keyboard friendly
+  peek.addEventListener('click', function(){ setControlsVisible(true); });
+  peek.addEventListener('keydown', function(e){ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); setControlsVisible(true); }});
   collapseBtn.addEventListener('click', function(){ setControlsVisible(false); });
 
   // ---------- Custom Difficulty menu logic ----------
@@ -470,6 +494,20 @@
   // expose for outside click handler
   var diffDD = document.getElementById('diffDD');
   document.addEventListener('click', function(e){ if(!diffDD.contains(e.target)) closeMenu(); });
+
+  // ---------- First-launch swipe hint ----------
+  try{
+    var seen = localStorage.getItem('nl_swipe_hint');
+    if(seen!=='1'){
+      hintEl.classList.add('show');
+      document.body.classList.add('modal-open');
+    }
+    hintOk.addEventListener('click', function(){
+      hintEl.classList.remove('show');
+      document.body.classList.remove('modal-open');
+      localStorage.setItem('nl_swipe_hint','1');
+    });
+  }catch(_e){}
 
   // ---------- Moves ----------
   function moveAttempt(vec){ var dx=vec[0], dy=vec[1];
