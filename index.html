@@ -3,44 +3,53 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0f1020" />
+  <meta name="theme-color" content="#0e1128" />
   <title>Neon Labyrinth — Minimal</title>
   <style>
     :root{
-      --bg1:#0f1020; --bg2:#090a12; --panel:#13142a; --text:#e6e6f0;
-      --accent:#6cf7ff; --accent2:#b46cff; --accent3:#4dff88;
-      --wall:#1f2140; --glow:#86f9ff88; --safe-bottom: env(safe-area-inset-bottom);
+      /* Higher-contrast, accessible palette */
+      --bg1:#0e1128; --bg2:#0a0c1a; --panel:#151936; --text:#f1f5ff;
+      --wall:#96b7ff66;            /* brighter walls */
+      --trail-outer:#0b0f2f;       /* dark outline for contrast */
+      --trail-inner:#ffd54a;       /* bright amber trail */
+      --optimal:#ff9f1c;           /* vivid orange optimal path */
+      --safe-bottom: env(safe-area-inset-bottom);
     }
     html,body{height:100%}
-    body{margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:var(--text); background: radial-gradient(1000px 700px at 15% 10%, #15163a 0%, var(--bg1) 35%, var(--bg2) 100%); overflow:hidden; touch-action:none}
+    body{margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:var(--text); background: radial-gradient(900px 600px at 20% 10%, #161a46 0%, var(--bg1) 45%, var(--bg2) 100%); overflow:hidden; touch-action:none}
 
     .wrap{position:relative; width:100vw; height:100vh; display:grid; grid-template-rows:auto 1fr auto}
 
     /* Stage */
     .stage{position:relative}
-    canvas{position:absolute; inset:0; width:100%; height:100%; display:block}
+    .stage canvas{position:absolute; inset:0; width:100%; height:100%; display:block; transition:filter .25s ease}
+    /* Blur the gameplay when modal is open */
+    body.modal-open .stage canvas{ filter: blur(2.2px) brightness(.9) }
 
     /* HUD (kept only Difficulty, Left, Restart) */
-    .hud{position:relative; z-index:5; display:flex; gap:12px; align-items:center; padding:10px 12px; background: color-mix(in srgb, var(--panel) 86%, transparent); backdrop-filter: blur(10px); border-radius:0 0 16px 16px; box-shadow:0 10px 30px #0006, inset 0 1px 0 #fff1; border-bottom:1px solid #ffffff14; border-left:1px solid #ffffff14; border-right:1px solid #ffffff14}
+    .hud{position:relative; z-index:5; display:flex; gap:12px; align-items:center; padding:10px 12px; background: color-mix(in srgb, var(--panel) 88%, transparent); backdrop-filter: blur(10px); border-radius:0 0 16px 16px; box-shadow:0 10px 30px #0006, inset 0 1px 0 #fff1; border-bottom:1px solid #ffffff14; border-left:1px solid #ffffff14; border-right:1px solid #ffffff14}
     .spacer{flex:1}
     label{font-size:12px; opacity:.85}
     select,button{appearance:none; border:none; outline:none; color:var(--text); font-weight:600}
-    select{background:#0e1030; border:1px solid #ffffff18; border-radius:12px; padding:8px 12px; cursor:pointer; box-shadow: inset 0 0 0 1px #0006, 0 6px 12px #0004; font-size:14px}
+    select{background:#0e1030; border:1px solid #ffffff26; border-radius:12px; padding:8px 12px; cursor:pointer; box-shadow: inset 0 0 0 1px #0006, 0 6px 12px #0004; font-size:14px}
     button{border-radius:12px; padding:10px 14px; cursor:pointer; background: linear-gradient(180deg, #3d9bff, #516dff); box-shadow: 0 8px 18px #0006, inset 0 1px 0 #ffffff22}
-    .pill{padding:8px 10px; border-radius:999px; font-variant-numeric:tabular-nums; background:#0e1030; border:1px solid #ffffff18; box-shadow: inset 0 0 0 1px #0006; display:flex; align-items:center; gap:8px; font-size:13px}
+    .pill{padding:8px 10px; border-radius:999px; font-variant-numeric:tabular-nums; background:#0e1030; border:1px solid #ffffff24; box-shadow: inset 0 0 0 1px #0006; display:flex; align-items:center; gap:8px; font-size:13px}
 
     /* Bottom on‑screen arrows (single mode) */
-    .controls{position:relative; z-index:5; padding:12px 12px calc(12px + var(--safe-bottom)); display:flex; align-items:center; justify-content:center; background: color-mix(in srgb, var(--panel) 86%, transparent); backdrop-filter: blur(8px); border-radius:16px 16px 0 0; border-top:1px solid #ffffff18; box-shadow:0 -10px 30px #0006}
-    .pad{ position:relative; width:min(60vw,380px); height:min(18vh,120px); display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap: clamp(6px,2vw,12px)}
-    .pad button{ border-radius:12px; font-size: clamp(14px,3.6vw,18px); width:100%; height:100%; background: linear-gradient(180deg, #2a2d66, #1b1e4e); box-shadow:0 8px 18px #0006, inset 0 1px 0 #ffffff22 }
+    .controls{position:relative; z-index:5; padding:10px 12px calc(10px + var(--safe-bottom)); display:flex; align-items:center; justify-content:center; background: color-mix(in srgb, var(--panel) 86%, transparent); backdrop-filter: blur(8px); border-radius:16px 16px 0 0; border-top:1px solid #ffffff18; box-shadow:0 -10px 30px #0006}
+    .pad{ position:relative; width:min(54vw,360px); height:min(16vh,108px); display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap: clamp(6px,2vw,10px)}
+    .pad button{ border-radius:12px; font-size: clamp(13px,3.2vw,17px); width:100%; height:100%; background: linear-gradient(180deg, #2a2d66, #1b1e4e); box-shadow:0 8px 18px #0006, inset 0 1px 0 #ffffff22 }
     .pad .sp{ visibility:hidden }
 
-    /* End banner */
-    .end{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; z-index:6; }
-    .end.show{ display:flex }
-    .card{ background:#14163aee; border:1px solid #ffffff18; border-radius:16px; padding:16px; width:min(92vw, 520px); text-align:center; box-shadow:0 20px 50px #0009; }
+    /* End banner with animated entrance */
+    .end{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; z-index:6; background: rgba(8,10,24,.35); backdrop-filter: blur(3px); opacity:0 }
+    .end.show{ display:flex; animation: fadeBg .25s ease forwards }
+    @keyframes fadeBg{ from{ opacity:0 } to{ opacity:1 } }
+    .card{ background:#14163aec; border:1px solid #ffffff22; border-radius:18px; padding:18px; width:min(92vw, 520px); text-align:center; box-shadow:0 20px 50px #000a; transform: translateY(10px) scale(.98); opacity:0 }
+    .end.show .card{ animation: popIn .28s cubic-bezier(.2,.9,.2,1.05) .1s forwards }
+    @keyframes popIn{ to { transform:none; opacity:1 } }
     .card h2{ margin:0 0 6px; font-size:clamp(18px,4.8vw,28px); letter-spacing:.02em }
-    .card p{ opacity:.9; margin:.25rem 0 .75rem; font-size:clamp(14px,3.6vw,16px) }
+    .card p{ opacity:.95; margin:.25rem 0 .75rem; font-size:clamp(14px,3.6vw,16px) }
     .card .row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap }
     .card button{ background: linear-gradient(180deg, #3d9bff, #516dff); }
     .card .ghost{ background: #0e1030 }
@@ -98,31 +107,26 @@
   const lerp=(a,b,t)=>a+(b-a)*t; const ease=t=>1-Math.pow(1-t,3);
   const pick = arr => arr[Math.floor(Math.random()*arr.length)];
 
-  // ---------- Vector pet & den (simple, consistent) ----------
+  // ---------- WebAudio (tiny synth SFX) ----------
+  let audioCtx = null;
+  const initAudio = () => { if(!audioCtx){ const C = window.AudioContext||window.webkitAudioContext; if(C) audioCtx = new C(); } };
+  const beep = (freq=520, dur=0.06, type='sine', gain=0.06, when=0) => { if(!audioCtx) return; const t=audioCtx.currentTime+when; const o=audioCtx.createOscillator(); const g=audioCtx.createGain(); o.type=type; o.frequency.value=freq; g.gain.setValueAtTime(gain,t); g.gain.exponentialRampToValueAtTime(0.0001, t+dur); o.connect(g).connect(audioCtx.destination); o.start(t); o.stop(t+dur); };
+  const playMove = ()=>{ beep(560,0.05,'sine',0.05); };
+  const playWin = ()=>{ if(!audioCtx) return; // quick triad
+    beep(660,0.18,'triangle',0.06,0);
+    beep(880,0.18,'triangle',0.05,0.08);
+    beep(990,0.20,'triangle',0.05,0.16);
+  };
+
+  // Hook audio init to first user action
+  window.addEventListener('keydown', initAudio, {once:true});
+  document.addEventListener('pointerdown', initAudio, {once:true});
+
+  // ---------- Vector pet & den ----------
   function drawHead(ctx, x, y, r, a='#ffffff', b='#d8e7ff'){ const g=ctx.createRadialGradient(x-r*0.3,y-r*0.3,r*0.2,x,y,r); g.addColorStop(0,a); g.addColorStop(1,b); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); }
   function drawBunny(ctx,x,y,s){ const r=s*0.42; drawHead(ctx,x,y,r); ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.ellipse(x-r*0.35,y-r*1.1,r*0.28,r*0.5,-0.2,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(x+r*0.35,y-r*1.1,r*0.28,r*0.5, 0.2,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#263238'; ctx.beginPath(); ctx.arc(x-r*0.3,y-r*0.05,r*0.08,0,Math.PI*2); ctx.arc(x+r*0.3,y-r*0.05,r*0.08,0,Math.PI*2); ctx.fill(); }
-  function drawHole(ctx,x,y,s){ // draw a cozy house instead of a hole
-    ctx.save();
-    const w = s*0.72, h = s*0.52;
-    // body
-    ctx.fillStyle = '#e3edf9';
-    ctx.fillRect(x - w/2, y - h/2, w, h);
-    // roof
-    ctx.fillStyle = '#ff6a6a';
-    ctx.beginPath();
-    ctx.moveTo(x - w*0.58, y - h/2);
-    ctx.lineTo(x,           y - h/2 - s*0.38);
-    ctx.lineTo(x + w*0.58, y - h/2);
-    ctx.closePath();
-    ctx.fill();
-    // door
-    ctx.fillStyle = '#1f2545';
-    ctx.fillRect(x - w*0.08, y - h/2 + h*0.56, w*0.16, h*0.44);
-    // windows
-    ctx.fillStyle = '#c7d9ff';
-    ctx.fillRect(x - w*0.28, y - h*0.12, w*0.18, h*0.18);
-    ctx.fillRect(x + w*0.10, y - h*0.12, w*0.18, h*0.18);
-    ctx.restore();
+  function drawHouse(ctx,x,y,s){
+    ctx.save(); const w=s*0.72, h=s*0.52; ctx.fillStyle='#e3edf9'; ctx.fillRect(x-w/2, y-h/2, w, h); ctx.fillStyle='#ff6a6a'; ctx.beginPath(); ctx.moveTo(x-w*0.58, y-h/2); ctx.lineTo(x, y-h/2 - s*0.38); ctx.lineTo(x+w*0.58, y-h/2); ctx.closePath(); ctx.fill(); ctx.fillStyle='#1f2545'; ctx.fillRect(x-w*0.08, y-h/2 + h*0.56, w*0.16, h*0.44); ctx.fillStyle='#c7d9ff'; ctx.fillRect(x-w*0.28, y-h*0.12, w*0.18, h*0.18); ctx.fillRect(x+w*0.10, y-h*0.12, w*0.18, h*0.18); ctx.restore();
   }
 
   // ---------- Maze ----------
@@ -149,15 +153,22 @@
   function fitCell(){ if(!state.maze) return; const W=stage.clientWidth-pad*2; const H=stage.clientHeight-pad*2; cellSize=Math.max(10, Math.floor(Math.min(W/state.maze.cols, H/state.maze.rows))); }
   function origin(){ const {cols,rows}=state.maze; return {ox:(stage.clientWidth-cols*cellSize)/2, oy:(stage.clientHeight-rows*cellSize)/2}; }
 
-  // ---------- Render ----------
-  function drawStatic(){ if(!state.maze) return; mctx.clearRect(0,0,mazeCv.width,mazeCv.height); const {cols,rows}=state.maze; const {ox,oy}=origin(); const g=mctx.createLinearGradient(ox,oy,ox+cols*cellSize,oy+rows*cellSize); g.addColorStop(0,'#0f1235'); g.addColorStop(1,'#14173d'); mctx.fillStyle=g; mctx.fillRect(ox-10,oy-10,cols*cellSize+20,rows*cellSize+20); mctx.lineWidth=2; mctx.strokeStyle='#9bf9ff33'; mctx.shadowColor='#86f9ff22'; mctx.shadowBlur=10; mctx.beginPath(); for(let y=0;y<rows;y++){for(let x=0;x<cols;x++){const c=state.maze.cell(x,y); const X=ox+x*cellSize, Y=oy+y*cellSize; if(c.walls[0]){mctx.moveTo(X,Y); mctx.lineTo(X+cellSize,Y);} if(c.walls[1]){mctx.moveTo(X+cellSize,Y); mctx.lineTo(X+cellSize,Y+cellSize);} if(c.walls[2]){mctx.moveTo(X,Y+cellSize); mctx.lineTo(X+cellSize,Y+cellSize);} if(c.walls[3]){mctx.moveTo(X,Y); mctx.lineTo(X,Y+cellSize);} }} mctx.stroke(); mctx.shadowBlur=0; const sx=ox+cellSize*0.5, sy=oy+cellSize*0.5; const gx=ox+(cols-0.5)*cellSize, gy=oy+(rows-0.5)*cellSize; mctx.fillStyle='#6cf7ff33'; mctx.beginPath(); mctx.arc(sx,sy,cellSize*0.33,0,Math.PI*2); mctx.fill(); drawHole(mctx,gx,gy,cellSize); if(state.showOptimal) drawOptimal(); }
+  // ---------- Particles (stars & sparkles) ----------
+  const stars=[]; // {x,y,vx,vy,g,life,t,size}
+  function celebrate(x,y){ const n=180; for(let i=0;i<n;i++){ const ang=Math.random()*Math.PI*2; const sp=2+Math.random()*5; const sz=1+Math.random()*2.4; stars.push({x,y, vx:Math.cos(ang)*sp, vy:Math.sin(ang)*sp-1.0, g:0.03+Math.random()*0.05, life:700+Math.random()*900, t:0, size:sz}); } }
+  function drawStars(dt){ fctx.globalCompositeOperation='lighter'; for(let i=stars.length-1;i>=0;i--){ const p=stars[i]; p.t+=dt; p.x+=p.vx; p.y+=p.vy; p.vy+=p.g; if(p.t>p.life){ stars.splice(i,1); continue; } const a=1-(p.t/p.life); fctx.fillStyle=`hsla(${(p.t*0.18)%360}, 90%, 65%, ${a})`; fctx.beginPath(); fctx.arc(p.x,p.y,p.size,0,Math.PI*2); fctx.fill(); } fctx.globalCompositeOperation='source-over'; }
 
-  function drawTrail(){ const {ox,oy}=origin(); const pts=state.path.map(p=>({x:ox+p.x*cellSize+cellSize*0.5,y:oy+p.y*cellSize+cellSize*0.5})); pts.push({x:ox+state.player.px*cellSize+cellSize*0.5, y:oy+state.player.py*cellSize+cellSize*0.5}); fctx.save(); fctx.clearRect(0,0,fxCv.width,fxCv.height); fctx.lineJoin='round'; fctx.lineCap='round'; fctx.strokeStyle='#6cf7ff33'; fctx.lineWidth=Math.max(2,cellSize*0.28); fctx.beginPath(); pts.forEach((p,i)=> i? fctx.lineTo(p.x,p.y):fctx.moveTo(p.x,p.y)); fctx.stroke(); fctx.strokeStyle='#6cf7ffcc'; fctx.lineWidth=Math.max(2,cellSize*0.16); fctx.beginPath(); pts.forEach((p,i)=> i? fctx.lineTo(p.x,p.y):fctx.moveTo(p.x,p.y)); fctx.stroke(); fctx.restore(); }
+  // ---------- Render ----------
+  function drawStatic(){ if(!state.maze) return; mctx.clearRect(0,0,mazeCv.width,mazeCv.height); const {cols,rows}=state.maze; const {ox,oy}=origin(); const g=mctx.createLinearGradient(ox,oy,ox+cols*cellSize,oy+rows*cellSize); g.addColorStop(0,'#0f123a'); g.addColorStop(1,'#141a46'); mctx.fillStyle=g; mctx.fillRect(ox-10,oy-10,cols*cellSize+20,rows*cellSize+20); mctx.lineWidth=2.2; mctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--wall'); mctx.shadowColor='#86f9ff22'; mctx.shadowBlur=10; mctx.beginPath(); for(let y=0;y<rows;y++){for(let x=0;x<cols;x++){const c=state.maze.cell(x,y); const X=ox+x*cellSize, Y=oy+y*cellSize; if(c.walls[0]){mctx.moveTo(X,Y); mctx.lineTo(X+cellSize,Y);} if(c.walls[1]){mctx.moveTo(X+cellSize,Y); mctx.lineTo(X+cellSize,Y+cellSize);} if(c.walls[2]){mctx.moveTo(X,Y+cellSize); mctx.lineTo(X+cellSize,Y+cellSize);} if(c.walls[3]){mctx.moveTo(X,Y); mctx.lineTo(X,Y+cellSize);} }} mctx.stroke(); mctx.shadowBlur=0; const sx=ox+cellSize*0.5, sy=oy+cellSize*0.5; const gx=ox+(cols-0.5)*cellSize, gy=oy+(rows-0.5)*cellSize; mctx.fillStyle='#ffffff22'; mctx.beginPath(); mctx.arc(sx,sy,cellSize*0.33,0,Math.PI*2); mctx.fill(); drawHouse(mctx,gx,gy,cellSize); if(state.showOptimal) drawOptimal(); }
+
+  function drawTrail(){ const {ox,oy}=origin(); const pts=state.path.map(p=>({x:ox+p.x*cellSize+cellSize*0.5,y:oy+p.y*cellSize+cellSize*0.5})); pts.push({x:ox+state.player.px*cellSize+cellSize*0.5, y:oy+state.player.py*cellSize+cellSize*0.5}); fctx.save(); fctx.clearRect(0,0,fxCv.width,fxCv.height); fctx.lineJoin='round'; fctx.lineCap='round'; // outer dark
+    fctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--trail-outer'); fctx.lineWidth=Math.max(2,cellSize*0.32); fctx.beginPath(); pts.forEach((p,i)=> i? fctx.lineTo(p.x,p.y):fctx.moveTo(p.x,p.y)); fctx.stroke(); // inner bright
+    fctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--trail-inner'); fctx.lineWidth=Math.max(2,cellSize*0.18); fctx.beginPath(); pts.forEach((p,i)=> i? fctx.lineTo(p.x,p.y):fctx.moveTo(p.x,p.y)); fctx.stroke(); fctx.restore(); }
 
   function drawPlayer(t){ const {ox,oy}=origin(); const cx=ox+state.player.px*cellSize+cellSize*0.5, cy=oy+state.player.py*cellSize+cellSize*0.5; const bob=Math.sin(t/240)*Math.min(6,cellSize*0.12); drawTrail(); // shadow
-    fctx.save(); fctx.fillStyle='#00000030'; fctx.beginPath(); fctx.ellipse(cx, cy+cellSize*0.18, cellSize*0.24, cellSize*0.12, 0, 0, Math.PI*2); fctx.fill(); fctx.restore(); drawBunny(fctx, cx, cy+bob, cellSize); }
+    fctx.save(); fctx.fillStyle='#00000040'; fctx.beginPath(); fctx.ellipse(cx, cy+cellSize*0.18, cellSize*0.24, cellSize*0.12, 0, 0, Math.PI*2); fctx.fill(); fctx.restore(); drawBunny(fctx, cx, cy+bob, cellSize); }
 
-  function drawOptimal(){ const {ox,oy}=origin(); if(!state.optimalPath.length) return; mctx.save(); mctx.lineCap='round'; mctx.lineJoin='round'; mctx.strokeStyle='#ffde5bcc'; mctx.lineWidth=Math.max(2,cellSize*0.18); mctx.beginPath(); state.optimalPath.forEach((p,i)=>{const x=ox+p.x*cellSize+cellSize*0.5, y=oy+p.y*cellSize+cellSize*0.5; i? mctx.lineTo(x,y):mctx.moveTo(x,y);}); mctx.stroke(); mctx.restore(); }
+  function drawOptimal(){ const {ox,oy}=origin(); if(!state.optimalPath.length) return; mctx.save(); mctx.lineCap='round'; mctx.lineJoin='round'; mctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--optimal'); mctx.lineWidth=Math.max(2,cellSize*0.2); mctx.setLineDash([Math.max(2,cellSize*0.35), Math.max(2,cellSize*0.22)]); mctx.beginPath(); state.optimalPath.forEach((p,i)=>{const x=ox+p.x*cellSize+cellSize*0.5, y=oy+p.y*cellSize+cellSize*0.5; i? mctx.lineTo(x,y):mctx.moveTo(x,y);}); mctx.stroke(); mctx.setLineDash([]); mctx.restore(); }
 
   // ---------- Input (keyboard + buttons) ----------
   const KEYMAP={ArrowUp:[0,-1],ArrowRight:[1,0],ArrowDown:[0,1],ArrowLeft:[-1,0],KeyW:[0,-1],KeyD:[1,0],KeyS:[0,1],KeyA:[-1,0]};
@@ -166,7 +177,7 @@
 
   // ---------- Moves ----------
   function tryMove(dx,dy){ if(state.player.moving) return; const c=state.maze.cell(state.player.gx,state.player.gy); const dir = dx===0&&dy===-1?0:dx===1&&dy===0?1:dx===0&&dy===1?2:3; if(c.walls[dir]) return; moveTo(state.player.gx+dx, state.player.gy+dy); }
-  function moveTo(nx,ny){ state.player.moving=true; state.moves++; updateLeft(); const sx=state.player.gx, sy=state.player.gy; const t0=now(), dur=140; const step=()=>{ const k=Math.min(1,(now()-t0)/dur), e=ease(k); state.player.px=lerp(sx,nx,e); state.player.py=lerp(sy,ny,e); if(k<1) requestAnimationFrame(step); else { state.player.gx=nx; state.player.gy=ny; state.player.px=nx; state.player.py=ny; state.player.moving=false; const L=state.path.length; if(L>=2 && state.path[L-2].x===nx && state.path[L-2].y===ny) state.path.pop(); else state.path.push({x:nx,y:ny}); checkWin(); } }; step(); }
+  function moveTo(nx,ny){ state.player.moving=true; state.moves++; updateLeft(); playMove(); const sx=state.player.gx, sy=state.player.gy; const t0=now(), dur=140; const step=()=>{ const k=Math.min(1,(now()-t0)/dur), e=ease(k); state.player.px=lerp(sx,nx,e); state.player.py=lerp(sy,ny,e); if(k<1) requestAnimationFrame(step); else { state.player.gx=nx; state.player.gy=ny; state.player.px=nx; state.player.py=ny; state.player.moving=false; const L=state.path.length; if(L>=2 && state.path[L-2].x===nx && state.path[L-2].y===ny) state.path.pop(); else state.path.push({x:nx,y:ny}); checkWin(); } }; step(); }
 
   // ---------- Shortest path ----------
   function shortestPath(){ const {cols,rows}=state.maze; const goal={x:cols-1,y:rows-1}; const dist=Array.from({length:rows},()=>Array(cols).fill(Infinity)); const prev=Array.from({length:rows},()=>Array(cols).fill(null)); const q=[{x:0,y:0}]; dist[0][0]=0; while(q.length){ const {x,y}=q.shift(); if(x===goal.x && y===goal.y) break; const c=state.maze.cell(x,y); const neigh=[[0,-1,0],[1,0,1],[0,1,2],[-1,0,3]]; for(const [dx,dy,wi] of neigh){ const nx=x+dx, ny=y+dy; if(nx<0||ny<0||nx>=cols||ny>=rows) continue; if(c.walls[wi]) continue; const nc=state.maze.cell(nx,ny); const wj=(wi+2)%4; if(nc.walls[wj]) continue; if(dist[ny][nx]===Infinity){ dist[ny][nx]=dist[y][x]+1; prev[ny][nx]={x,y}; q.push({x:nx,y:ny}); } } }
@@ -179,12 +190,12 @@
 
   document.getElementById('difficulty').addEventListener('change', e=>{ state.diff=e.target.value; newMaze(); });
   document.getElementById('restart').addEventListener('click', restart);
-  againBtn.addEventListener('click', ()=>{ endEl.classList.remove('show'); newMaze(); });
-  dismissBtn.addEventListener('click', ()=> endEl.classList.remove('show'));
+  againBtn.addEventListener('click', ()=>{ endEl.classList.remove('show'); document.body.classList.remove('modal-open'); newMaze(); });
+  dismissBtn.addEventListener('click', ()=> { endEl.classList.remove('show'); document.body.classList.remove('modal-open'); });
 
   // ---------- Game flow ----------
   function newMaze(){ const d=DIFFS[state.diff]; state.maze=new Maze(d.cols,d.rows,d.braid); fitCell(); state.player={gx:0,gy:0,px:0,py:0,moving:false}; state.goal={x:state.maze.cols-1, y:state.maze.rows-1}; state.path=[{x:0,y:0}]; const sp=shortestPath(); state.optimalMoves=sp.len; state.optimalPath=sp.path; state.moves=0; state.showOptimal=false; updateLeft(); drawStatic(); state.running=true; }
-  function restart(){ state.player={gx:0,gy:0,px:0,py:0,moving:false}; state.path=[{x:0,y:0}]; state.moves=0; state.showOptimal=false; endEl.classList.remove('show'); updateLeft(); }
+  function restart(){ state.player={gx:0,gy:0,px:0,py:0,moving:false}; state.path=[{x:0,y:0}]; state.moves=0; state.showOptimal=false; endEl.classList.remove('show'); document.body.classList.remove('modal-open'); updateLeft(); }
 
   const WIN_LINES=[
     'Well done! 🎉', 'Great job! ✨', 'You did it! 🏆', 'Nice! 💫', 'Brilliant! 🌟',
@@ -194,17 +205,22 @@
   function checkWin(){
     if(state.player.gx===state.goal.x && state.player.gy===state.goal.y){
       state.running=false;
+      const {ox,oy}=origin();
+      const gx=ox+(state.goal.x+0.5)*cellSize, gy=oy+(state.goal.y+0.5)*cellSize;
+      celebrate(gx,gy); // sparkle burst
+      playWin();
       const over = state.moves>state.optimalMoves;
       state.showOptimal = over; drawStatic();
       endTitle.textContent = pick(WIN_LINES);
       const delta = state.optimalMoves - state.moves;
       endDesc.textContent = over ? `Optimal path shown in gold (you were ${-delta} moves over).` : 'Perfect path! You matched the optimal route.';
       endEl.classList.add('show');
+      document.body.classList.add('modal-open');
     }
   }
 
   // ---------- Loop ----------
-  let last=now(); function loop(){ const t=now(); last=t; drawStatic(); drawPlayer(t); requestAnimationFrame(loop); }
+  let last=now(); function loop(){ const t=now(); const dt=t-last; last=t; drawStatic(); drawPlayer(t); drawStars(dt); requestAnimationFrame(loop); }
 
   // ---------- Self tests ----------
   function selfTests(){ const sp=shortestPath(); console.assert(Number.isFinite(sp.len) && sp.len>0, 'BFS shortest path exists'); }
