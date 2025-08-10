@@ -3,346 +3,149 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0f1020" />
-  <title>Neon Labyrinth — Web App</title>
+  <title>Neon Labyrinth — Minimal</title>
   <style>
     :root{
       --bg1:#0f1020; --bg2:#090a12; --panel:#13142a; --text:#e6e6f0;
-      --accent:#6cf7ff; --accent2:#b46cff; --accent3:#4dff88; --danger:#ff5d78;
-      --wall:#1f2140; --glow:#86f9ff88; --gold:#ffd464;
-      --safe-bottom: env(safe-area-inset-bottom);
+      --accent:#6cf7ff; --accent2:#b46cff; --accent3:#4dff88;
+      --wall:#1f2140; --glow:#86f9ff88; --safe-bottom: env(safe-area-inset-bottom);
     }
     html,body{height:100%}
-    body{
-      margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-      color:var(--text);
-      background: radial-gradient(1000px 700px at 15% 10%, #15163a 0%, var(--bg1) 35%, var(--bg2) 100%);
-      overflow:hidden; touch-action:none;
-    }
+    body{margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:var(--text); background: radial-gradient(1000px 700px at 15% 10%, #15163a 0%, var(--bg1) 35%, var(--bg2) 100%); overflow:hidden; touch-action:none}
+
     .wrap{position:relative; width:100vw; height:100vh; display:grid; grid-template-rows:auto 1fr auto}
 
-    /* Canvas area */
+    /* Stage */
     .stage{position:relative}
     canvas{position:absolute; inset:0; width:100%; height:100%; display:block}
 
-    /* HUD */
-    .hud{position:relative; z-index:5; display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:10px 12px; background: color-mix(in srgb, var(--panel) 86%, transparent); backdrop-filter: blur(10px); border-radius:0 0 16px 16px; box-shadow:0 10px 30px #0006, inset 0 1px 0 #fff1; border-bottom:1px solid #ffffff14; border-left:1px solid #ffffff14; border-right:1px solid #ffffff14; animation: drop .4s ease both}
-    @keyframes drop{from{transform:translateY(-14px); opacity:0} to{transform:none; opacity:1}}
-    .hud .group{display:flex; gap:8px; align-items:center}
-    .hud label{font-size:12px; opacity:.85}
+    /* HUD (kept only Difficulty, Left, Restart) */
+    .hud{position:relative; z-index:5; display:flex; gap:12px; align-items:center; padding:10px 12px; background: color-mix(in srgb, var(--panel) 86%, transparent); backdrop-filter: blur(10px); border-radius:0 0 16px 16px; box-shadow:0 10px 30px #0006, inset 0 1px 0 #fff1; border-bottom:1px solid #ffffff14; border-left:1px solid #ffffff14; border-right:1px solid #ffffff14}
+    .spacer{flex:1}
+    label{font-size:12px; opacity:.85}
     select,button{appearance:none; border:none; outline:none; color:var(--text); font-weight:600}
     select{background:#0e1030; border:1px solid #ffffff18; border-radius:12px; padding:8px 12px; cursor:pointer; box-shadow: inset 0 0 0 1px #0006, 0 6px 12px #0004; font-size:14px}
-    button{position:relative; border-radius:12px; padding:10px 14px; cursor:pointer; background: linear-gradient(180deg, #2a2d66, #1b1e4e); box-shadow: 0 8px 18px #0006, inset 0 1px 0 #ffffff22; transition: transform .08s ease, box-shadow .2s ease, filter .2s ease}
-    button.primary{background: linear-gradient(180deg, #3d9bff, #516dff)}
-    button:hover{filter:saturate(1.1)} button:active{transform: translateY(1px)}
-    .spacer{flex:1}
+    button{border-radius:12px; padding:10px 14px; cursor:pointer; background: linear-gradient(180deg, #3d9bff, #516dff); box-shadow: 0 8px 18px #0006, inset 0 1px 0 #ffffff22}
     .pill{padding:8px 10px; border-radius:999px; font-variant-numeric:tabular-nums; background:#0e1030; border:1px solid #ffffff18; box-shadow: inset 0 0 0 1px #0006; display:flex; align-items:center; gap:8px; font-size:13px}
-    .dot{width:8px; height:8px; border-radius:50%; display:inline-block; box-shadow:0 0 12px currentColor}
-    .dot.accent{background:var(--accent); color:var(--accent)}
-    .dot.moves{background:var(--accent2); color:var(--accent2)}
-    .dot.best{background:var(--accent3); color:var(--accent3)}
-    .dot.gold{background:var(--gold); color:var(--gold)}
 
-    /* Bottom controls (on-screen arrows) */
-    .controls{position:relative; z-index:5; padding:12px 12px calc(12px + var(--safe-bottom)); display:none; align-items:center; justify-content:center; gap:18px; background: color-mix(in srgb, var(--panel) 86%, transparent); backdrop-filter: blur(8px); border-radius:16px 16px 0 0; border-top:1px solid #ffffff18; box-shadow:0 -10px 30px #0006}
-    .controls.show{ display:flex }
-    .pad{ position:relative; width:210px; height:140px}
-    .pad button{ position:absolute; width:64px; height:64px; border-radius:16px; font-size:22px}
-    .pad .up{ left:73px; top:-4px}
-    .pad .down{ left:73px; bottom:-4px}
-    .pad .left{ left:6px; top:38px}
-    .pad .right{ right:6px; top:38px}
-
-    .seg{display:flex; border:1px solid #ffffff22; border-radius:12px; overflow:hidden}
-    .seg button{ background:#0e1030; padding:8px 12px; border-radius:0; font-size:13px}
-    .seg button.active{ background:#27307a }
-
-    /* Title & banners */
-    .title{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); text-align:center; pointer-events:none; user-select:none; text-shadow:0 0 18px var(--glow), 0 0 6px #fff2}
-    .title h1{font-size:clamp(24px, 6vw, 48px); margin:0; letter-spacing:.04em; font-weight:900}
-    .title p{opacity:.8; margin:.3em 0 0}
-    .banner{position:absolute; left:50%; top:18px; transform:translateX(-50%); background:#0e1030; border:1px solid #ffffff18; border-radius:14px; padding:10px 14px; display:none; box-shadow:0 10px 24px #0008}
-    .banner.show{display:flex; gap:10px; align-items:center}
-
-    .help{position:absolute; right:12px; bottom:calc(12px + var(--safe-bottom)); z-index:6}
-    .help button{border-radius:999px; width:44px; height:44px; padding:0; font-size:18px}
-    .tooltip{position:absolute; right:54px; bottom:0; background:#0e1030; border:1px solid #ffffff18; border-radius:12px; padding:10px 12px; width:260px; box-shadow:0 10px 30px #0008; display:none}
-    .help.open .tooltip{display:block}
+    /* Bottom on‑screen arrows (single mode) */
+    .controls{position:relative; z-index:5; padding:12px 12px calc(12px + var(--safe-bottom)); display:flex; align-items:center; justify-content:center; background: color-mix(in srgb, var(--panel) 86%, transparent); backdrop-filter: blur(8px); border-radius:16px 16px 0 0; border-top:1px solid #ffffff18; box-shadow:0 -10px 30px #0006}
+    .pad{ position:relative; width:min(84vw,520px); height:min(30vh,220px); display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap: clamp(8px,2.5vw,16px)}
+    .pad button{ border-radius:16px; font-size: clamp(18px,4.6vw,22px); width:100%; height:100%; background: linear-gradient(180deg, #2a2d66, #1b1e4e); box-shadow:0 8px 18px #0006, inset 0 1px 0 #ffffff22 }
+    .pad .sp{ visibility:hidden }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <!-- HUD top -->
-    <div class="hud" role="toolbar" aria-label="Game controls">
-      <div class="group">
+    <div class="hud">
+      <div>
         <label for="difficulty">Difficulty</label>
-        <select id="difficulty" title="Choose maze size">
+        <select id="difficulty">
           <option value="easy">Easy</option>
           <option value="medium" selected>Medium</option>
           <option value="hard">Hard</option>
           <option value="insane">Insane</option>
         </select>
-        <button id="new" class="primary" title="Generate new maze">New Maze</button>
-        <button id="restart" title="Restart from start">Restart</button>
-        <button id="share" title="Copy a share link">Share</button>
       </div>
-      <div class="group">
-        <label>Controls</label>
-        <div class="seg" role="tablist" aria-label="Control mode">
-          <button id="mode-swipe" class="active" role="tab" aria-selected="true" title="Swipe with your finger">Swipe</button>
-          <button id="mode-arrows" role="tab" aria-selected="false" title="Show on-screen arrow buttons">On‑screen arrows</button>
-        </div>
-      </div>
+      <div class="pill"><strong>Left:</strong> <span id="left">0</span></div>
       <div class="spacer"></div>
-      <div class="pill" title="Your level & XP"><span class="dot gold"></span> <strong>Lvl</strong> <span id="level">1</span> · <span id="xpProg">0/100</span></div>
-      <div class="pill" id="timePill" title="Elapsed time"><span class="dot accent"></span> <strong>Time:</strong> <span id="time">00:00.0</span></div>
-      <div class="pill" title="Moves"><span class="dot moves"></span> <strong>Moves:</strong> <span id="moves">0</span></div>
-      <div class="pill" title="Best time for this difficulty"><span class="dot best"></span> <strong>Best:</strong> <span id="best">—</span></div>
-      <div class="pill" title="Moves remaining vs shortest path"><span class="dot best"></span> <strong>Left:</strong> <span id="left">0</span></div>
+      <button id="restart">Restart</button>
     </div>
 
-    <!-- Stage center -->
     <div class="stage" id="stage">
       <canvas id="maze"></canvas>
       <canvas id="fx"></canvas>
-      <div class="title" id="title">
-        <h1>Neon Labyrinth</h1>
-        <p>Swipe or tap the on‑screen arrows (keyboard always works).</p>
-      </div>
-      <div class="banner" id="banner">🏆 <span id="bannerText">You escaped!</span></div>
     </div>
 
-    <!-- Bottom controls -->
-    <div class="controls" id="controls">
+    <div class="controls">
       <div class="pad" aria-label="On-screen arrows">
+        <span class="sp"></span>
         <button class="up"    data-dx="0" data-dy="-1" aria-label="Move up">▲</button>
+        <span class="sp"></span>
         <button class="left"  data-dx="-1" data-dy="0" aria-label="Move left">◀</button>
-        <button class="right" data-dx="1" data-dy="0" aria-label="Move right">▶</button>
         <button class="down"  data-dx="0" data-dy="1" aria-label="Move down">▼</button>
+        <button class="right" data-dx="1" data-dy="0" aria-label="Move right">▶</button>
       </div>
-    </div>
-
-    <div class="help" id="help">
-      <div class="tooltip">
-        <strong>How to play</strong><br>
-        Reach the den. Mobile opens in portrait; desktop in landscape. Choose controls: <em>Swipe</em> or <em>On‑screen arrows</em>. Keyboard arrows/WASD always work. Best times are saved per difficulty. Gain XP to level up!<br>
-        <em>Tip:</em> Use the Share button to copy a link that opens with your current settings.
-      </div>
-      <button aria-label="Help / tips">?</button>
     </div>
   </div>
 
 <script>
 (() => {
-  // ------- Utilities -------
-  const lerp = (a,b,t)=>a+(b-a)*t;
+  // ---------- Utils ----------
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
-  const now = ()=> performance.now();
-  const fmtTime = ms => { const t=Math.max(0,ms); const m=Math.floor(t/60000); const s=Math.floor((t%60000)/1000); const ds=Math.floor((t%1000)/100); return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${ds}`; };
-  const ease = t => 1- Math.pow(1-t, 3);
-  const qs = (sel,root=document)=>root.querySelector(sel);
-  const qsa=(sel,root=document)=>Array.from(root.querySelectorAll(sel));
-  const params = new URLSearchParams(location.search);
+  const now=()=>performance.now();
+  const lerp=(a,b,t)=>a+(b-a)*t; const ease=t=>1-Math.pow(1-t,3);
 
-  // Orientation helpers
-  const isMobile = () => matchMedia('(pointer:coarse)').matches || /Mobi|Android/i.test(navigator.userAgent);
-  const preferLandscape = () => !isMobile() && (window.innerWidth >= window.innerHeight);
+  // ---------- Vector pet & den (simple, consistent) ----------
+  function drawHead(ctx, x, y, r, a='#ffffff', b='#d8e7ff'){ const g=ctx.createRadialGradient(x-r*0.3,y-r*0.3,r*0.2,x,y,r); g.addColorStop(0,a); g.addColorStop(1,b); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); }
+  function drawBunny(ctx,x,y,s){ const r=s*0.42; drawHead(ctx,x,y,r); ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.ellipse(x-r*0.35,y-r*1.1,r*0.28,r*0.5,-0.2,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(x+r*0.35,y-r*1.1,r*0.28,r*0.5, 0.2,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#263238'; ctx.beginPath(); ctx.arc(x-r*0.3,y-r*0.05,r*0.08,0,Math.PI*2); ctx.arc(x+r*0.3,y-r*0.05,r*0.08,0,Math.PI*2); ctx.fill(); }
+  function drawHole(ctx,x,y,s){ ctx.save(); const g=ctx.createRadialGradient(x,y,s*0.1,x,y,s*0.6); g.addColorStop(0,'#111'); g.addColorStop(1,'#0000'); ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(x,y,s*0.55,s*0.36,0,0,Math.PI*2); ctx.fill(); ctx.restore(); }
 
-  // ------- Vector pets & dens (no emoji) -------
-  function drawHole(ctx, x, y, s){ ctx.save(); ctx.shadowColor = '#0008'; ctx.shadowBlur=12; const g=ctx.createRadialGradient(x, y, s*0.1, x, y, s*0.6); g.addColorStop(0,'#111'); g.addColorStop(1,'#0000'); ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(x, y, s*0.55, s*0.36, 0, 0, Math.PI*2); ctx.fill(); ctx.restore(); }
-  function drawCave(ctx, x, y, s){ ctx.save(); ctx.fillStyle = '#2b314d'; ctx.beginPath(); ctx.moveTo(x-s*0.6, y+s*0.45); ctx.lineTo(x, y-s*0.55); ctx.lineTo(x+s*0.6, y+s*0.45); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#0f1329'; ctx.beginPath(); ctx.ellipse(x, y+s*0.15, s*0.28, s*0.22, 0, 0, Math.PI*2); ctx.fill(); ctx.restore(); }
-  function drawHouse(ctx, x, y, s){ ctx.save(); ctx.fillStyle = '#e3edf9'; ctx.fillRect(x-s*0.35, y-s*0.15, s*0.7, s*0.5); ctx.fillStyle = '#ff6a6a'; ctx.beginPath(); ctx.moveTo(x-s*0.42, y-s*0.15); ctx.lineTo(x, y-s*0.55); ctx.lineTo(x+s*0.42, y-s*0.15); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#1f2545'; ctx.fillRect(x-s*0.08, y+s*0.1, s*0.16, s*0.25); ctx.restore(); }
-  function drawHead(ctx, x, y, r, color1, color2){ const grd = ctx.createRadialGradient(x-r*0.3, y-r*0.3, r*0.2, x, y, r); grd.addColorStop(0,color1); grd.addColorStop(1,color2); ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill(); }
-  function drawBunny(ctx, x, y, s){ const r=s*0.42; drawHead(ctx,x,y,r,'#ffffff','#d8e7ff'); ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.ellipse(x - r*0.35, y - r*1.1, r*0.28, r*0.5, -0.2, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(x + r*0.35, y - r*1.1, r*0.28, r*0.5, 0.2, 0, Math.PI*2); ctx.fill(); ctx.fillStyle='#ff6b8a'; ctx.beginPath(); ctx.arc(x, y + r*0.1, r*0.08, 0, Math.PI*2); ctx.fill(); ctx.fillStyle='#263238'; ctx.beginPath(); ctx.arc(x - r*0.35, y - r*0.05, r*0.08, 0, Math.PI*2); ctx.arc(x + r*0.35, y - r*0.05, r*0.08, 0, Math.PI*2); ctx.fill(); }
-  function drawFox(ctx, x, y, s){ const r=s*0.42; drawHead(ctx,x,y,r,'#ff9933','#ff7a33'); ctx.fillStyle='#ff9933'; ctx.beginPath(); ctx.moveTo(x-r*0.55, y-r*0.3); ctx.lineTo(x-r*0.15, y-r*1.1); ctx.lineTo(x-r*0.05, y-r*0.2); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(x+r*0.55, y-r*0.3); ctx.lineTo(x+r*0.15, y-r*1.1); ctx.lineTo(x+r*0.05, y-r*0.2); ctx.closePath(); ctx.fill(); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x, y+r*0.2, r*0.25, 0, Math.PI*2); ctx.fill(); ctx.fillStyle='#263238'; ctx.beginPath(); ctx.arc(x - r*0.28, y - r*0.05, r*0.08, 0, Math.PI*2); ctx.arc(x + r*0.28, y - r*0.05, r*0.08, 0, Math.PI*2); ctx.fill(); }
-  function drawBear(ctx, x, y, s){ const r=s*0.42; drawHead(ctx,x,y,r,'#a4774f','#7a5334'); ctx.fillStyle='#7a5334'; ctx.beginPath(); ctx.arc(x-r*0.45, y-r*0.45, r*0.22, 0, Math.PI*2); ctx.arc(x+r*0.45, y-r*0.45, r*0.22, 0, Math.PI*2); ctx.fill(); ctx.fillStyle='#263238'; ctx.beginPath(); ctx.arc(x - r*0.28, y - r*0.05, r*0.09, 0, Math.PI*2); ctx.arc(x + r*0.28, y - r*0.05, r*0.09, 0, Math.PI*2); ctx.fill(); ctx.fillStyle='#1e272f'; ctx.beginPath(); ctx.arc(x, y + r*0.15, r*0.1, 0, Math.PI*2); ctx.fill(); }
-  function drawCat(ctx, x, y, s){ const r=s*0.42; drawHead(ctx,x,y,r,'#c7cfe1','#9aa6c0'); ctx.fillStyle='#9aa6c0'; ctx.beginPath(); ctx.moveTo(x-r*0.5, y-r*0.6); ctx.lineTo(x-r*0.1, y-r*1.0); ctx.lineTo(x-r*0.05, y-r*0.4); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(x+r*0.5, y-r*0.6); ctx.lineTo(x+r*0.1, y-r*1.0); ctx.lineTo(x+r*0.05, y-r*0.4); ctx.closePath(); ctx.fill(); ctx.fillStyle='#263238'; ctx.beginPath(); ctx.arc(x - r*0.28, y - r*0.05, r*0.08, 0, Math.PI*2); ctx.arc(x + r*0.28, y - r*0.05, r*0.08, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle='#263238'; ctx.lineWidth=1.5; for(const sy of [-0.02,0.06,0.14]){ ctx.beginPath(); ctx.moveTo(x-r*0.2, y+r*sy); ctx.lineTo(x-r*0.55, y+r*sy-2); ctx.moveTo(x+r*0.2, y+r*sy); ctx.lineTo(x+r*0.55, y+r*sy-2); ctx.stroke(); } }
+  // ---------- Maze ----------
+  class Maze{ constructor(cols,rows,braid=0.35){ this.cols=cols; this.rows=rows; this.grid=Array.from({length:rows},(_,y)=>Array.from({length:cols},(_,x)=>({x,y,walls:[1,1,1,1],v:false}))); this.generate(); this.braid(braid);} cell(x,y){return (this.grid[y]||[])[x]} neighbors(x,y){return [[x,y-1,0,2],[x+1,y,1,3],[x,y+1,2,0],[x-1,y,3,1]].filter(([nx,ny])=>nx>=0&&ny>=0&&nx<this.cols&&ny<this.rows).map(([nx,ny,wi,wj])=>({from:this.cell(x,y),to:this.cell(nx,ny),wi,wj,nx,ny}))} generate(){const st=this.cell(0,0); st.v=true; const stack=[st]; while(stack.length){const cur=stack[stack.length-1]; const n=this.neighbors(cur.x,cur.y).filter(e=>!e.to.v); if(n.length){const p=n[Math.floor(Math.random()*n.length)]; cur.walls[p.wi]=0; p.to.walls[p.wj]=0; p.to.v=true; stack.push(p.to);}else stack.pop();}} braid(p){for(let y=0;y<this.rows;y++){for(let x=0;x<this.cols;x++){if(Math.random()>p)continue; const c=this.cell(x,y); const n=this.neighbors(x,y).filter(e=>c.walls[e.wi]===1); if(!n.length)continue; const pick=n[Math.floor(Math.random()*n.length)]; c.walls[pick.wi]=0; pick.to.walls[pick.wj]=0;}}} }
 
-  const SKINS=[
-    {name:'Bunny', pet:drawBunny, den:drawHole},
-    {name:'Fox',   pet:drawFox,   den:drawHole},
-    {name:'Bear',  pet:drawBear,  den:drawCave},
-    {name:'Cat',   pet:drawCat,   den:drawHouse},
-  ];
-  let currentSkin = SKINS[0];
+  const DIFFS={easy:{cols:11,rows:17,braid:0.35}, medium:{cols:15,rows:23,braid:0.35}, hard:{cols:19,rows:29,braid:0.45}, insane:{cols:25,rows:37,braid:0.5}};
 
-  // ------- Maze Generation (Backtracker + braiding for loops) -------
-  class Maze {
-    constructor(cols, rows, braid=0.25){ this.cols=cols; this.rows=rows; this.grid=Array.from({length:rows},(_,y)=>Array.from({length:cols},(_,x)=>({x,y,walls:[1,1,1,1],v:false}))); this.generate(); this.braid(braid); }
-    cell(x,y){ return (this.grid[y]||[])[x]; }
-    neighbors(x,y){ return [[x,y-1,0,2],[x+1,y,1,3],[x,y+1,2,0],[x-1,y,3,1]].filter(([nx,ny])=>nx>=0&&ny>=0&&nx<this.cols&&ny<this.rows).map(([nx,ny,wi,wj])=>({from:this.cell(x,y),to:this.cell(nx,ny),wi,wj,nx,ny})); }
-    generate(){ const stack=[]; const start=this.cell(0,0); start.v=true; stack.push(start); while(stack.length){ const cur=stack[stack.length-1]; const n=this.neighbors(cur.x,cur.y).filter(e=>!e.to.v); if(n.length){ const pick=n[Math.floor(Math.random()*n.length)]; cur.walls[pick.wi]=0; pick.to.walls[pick.wj]=0; pick.to.v=true; stack.push(pick.to);} else stack.pop(); } }
-    braid(prob){ for(let y=0;y<this.rows;y++){ for(let x=0;x<this.cols;x++){ if(Math.random()>prob) continue; const c=this.cell(x,y); const n=this.neighbors(x,y).filter(e=> c.walls[e.wi]===1 ); if(!n.length) continue; const pick = n[Math.floor(Math.random()*n.length)]; c.walls[pick.wi]=0; pick.to.walls[pick.wj]=0; } } }
-  }
+  const state={diff:'medium', maze:null, player:{gx:0,gy:0,px:0,py:0,moving:false}, goal:null, moves:0, optimalMoves:0, path:[{x:0,y:0}], optimalPath:[], showOptimal:false, running:false};
 
-  // ------- Game State & Difficulty -------
-  const DIFFS = {
-    easy:{cols:11, rows:17, braid:0.35, xpBase:60},
-    medium:{cols:15, rows:23, braid:0.35, xpBase:120},
-    hard:{cols:19, rows:29, braid:0.45, xpBase:200},
-    insane:{cols:25, rows:37, braid:0.5, xpBase:300}
-  };
-  function dimsFor(diff){ const d = DIFFS[diff]; if(!d) return DIFFS.medium; // portrait defaults
-    if(preferLandscape()){ return {cols:d.rows, rows:d.cols, braid:d.braid, xpBase:d.xpBase}; } // swap for desktop landscape
-    return d;
-  }
-
-  const state = { diff:'medium', maze:null, player:{gx:0, gy:0, px:0, py:0, moving:false}, goal:null, moves:0, startedAt:0, finishedAt:0, running:false, mode:'swipe', path:[], optimalMoves:0, xp:0 };
-
-  // ------- Canvas Setup -------
-  const mazeCv = document.getElementById('maze');
-  const fxCv   = document.getElementById('fx');
-  const mctx = mazeCv.getContext('2d');
-  const fctx = fxCv.getContext('2d');
-  const stage = document.getElementById('stage');
-
-  const DPR = () => Math.min(2, window.devicePixelRatio||1);
+  // ---------- Canvas ----------
+  const mazeCv=document.getElementById('maze'), fxCv=document.getElementById('fx');
+  const mctx=mazeCv.getContext('2d'), fctx=fxCv.getContext('2d');
+  const stage=document.getElementById('stage');
+  const DPR=()=>Math.min(2,window.devicePixelRatio||1);
   let cellSize=24, pad=16;
 
-  function resize(){
-    const dpr = DPR(); const w = stage.clientWidth, h = stage.clientHeight;
-    [mazeCv, fxCv].forEach(cv=>{ cv.width = Math.floor(w*dpr); cv.height = Math.floor(h*dpr); cv.style.width=w+'px'; cv.style.height=h+'px';});
-    mctx.setTransform(dpr,0,0,dpr,0,0); fctx.setTransform(dpr,0,0,dpr,0,0);
-    fitCell(); drawStatic();
-  }
-  function controlsVisible(){ return document.getElementById('controls').classList.contains('show'); }
-  function fitCell(){ if(!state.maze) return; const W = stage.clientWidth - pad*2; const reserved = controlsVisible() ? (document.getElementById('controls').offsetHeight + 10) : 0; const H = stage.clientHeight - pad*2 - reserved*0.2; const cw = Math.floor(W / state.maze.cols); const ch = Math.floor(H / state.maze.rows); cellSize = Math.max(12, Math.min(cw, ch)); }
+  function resize(){ const dpr=DPR(); const w=stage.clientWidth, h=stage.clientHeight; [mazeCv,fxCv].forEach(cv=>{cv.width=Math.floor(w*dpr); cv.height=Math.floor(h*dpr); cv.style.width=w+'px'; cv.style.height=h+'px';}); mctx.setTransform(dpr,0,0,dpr,0,0); fctx.setTransform(dpr,0,0,dpr,0,0); fitCell(); drawStatic(); }
+  function fitCell(){ if(!state.maze) return; const W=stage.clientWidth-pad*2; const H=stage.clientHeight-pad*2; cellSize=Math.max(10, Math.floor(Math.min(W/state.maze.cols, H/state.maze.rows))); }
+  function origin(){ const {cols,rows}=state.maze; return {ox:(stage.clientWidth-cols*cellSize)/2, oy:(stage.clientHeight-rows*cellSize)/2}; }
 
-  // ------- Rendering -------
-  function boardOrigin(){ const {cols,rows}=state.maze; return { ox:(stage.clientWidth - cols*cellSize)/2, oy:(stage.clientHeight - rows*cellSize)/2 - 6}; }
+  // ---------- Render ----------
+  function drawStatic(){ if(!state.maze) return; mctx.clearRect(0,0,mazeCv.width,mazeCv.height); const {cols,rows}=state.maze; const {ox,oy}=origin(); const g=mctx.createLinearGradient(ox,oy,ox+cols*cellSize,oy+rows*cellSize); g.addColorStop(0,'#0f1235'); g.addColorStop(1,'#14173d'); mctx.fillStyle=g; mctx.fillRect(ox-10,oy-10,cols*cellSize+20,rows*cellSize+20); mctx.lineWidth=2; mctx.strokeStyle='#9bf9ff33'; mctx.shadowColor='#86f9ff22'; mctx.shadowBlur=10; mctx.beginPath(); for(let y=0;y<rows;y++){for(let x=0;x<cols;x++){const c=state.maze.cell(x,y); const X=ox+x*cellSize, Y=oy+y*cellSize; if(c.walls[0]){mctx.moveTo(X,Y); mctx.lineTo(X+cellSize,Y);} if(c.walls[1]){mctx.moveTo(X+cellSize,Y); mctx.lineTo(X+cellSize,Y+cellSize);} if(c.walls[2]){mctx.moveTo(X,Y+cellSize); mctx.lineTo(X+cellSize,Y+cellSize);} if(c.walls[3]){mctx.moveTo(X,Y); mctx.lineTo(X,Y+cellSize);} }} mctx.stroke(); mctx.shadowBlur=0; const sx=ox+cellSize*0.5, sy=oy+cellSize*0.5; const gx=ox+(cols-0.5)*cellSize, gy=oy+(rows-0.5)*cellSize; mctx.fillStyle='#6cf7ff33'; mctx.beginPath(); mctx.arc(sx,sy,cellSize*0.33,0,Math.PI*2); mctx.fill(); drawHole(mctx,gx,gy,cellSize); if(state.showOptimal) drawOptimal(); }
 
-  function drawStatic(){
-    if(!state.maze) return;
-    mctx.clearRect(0,0,mazeCv.width,mazeCv.height);
-    const {cols, rows} = state.maze; const {ox,oy}=boardOrigin();
+  function drawTrail(){ const {ox,oy}=origin(); const pts=state.path.map(p=>({x:ox+p.x*cellSize+cellSize*0.5,y:oy+p.y*cellSize+cellSize*0.5})); pts.push({x:ox+state.player.px*cellSize+cellSize*0.5, y:oy+state.player.py*cellSize+cellSize*0.5}); fctx.save(); fctx.clearRect(0,0,fxCv.width,fxCv.height); fctx.lineJoin='round'; fctx.lineCap='round'; fctx.strokeStyle='#6cf7ff33'; fctx.lineWidth=Math.max(2,cellSize*0.28); fctx.beginPath(); pts.forEach((p,i)=> i? fctx.lineTo(p.x,p.y):fctx.moveTo(p.x,p.y)); fctx.stroke(); fctx.strokeStyle='#6cf7ffcc'; fctx.lineWidth=Math.max(2,cellSize*0.16); fctx.beginPath(); pts.forEach((p,i)=> i? fctx.lineTo(p.x,p.y):fctx.moveTo(p.x,p.y)); fctx.stroke(); fctx.restore(); }
 
-    // Board background glow
-    const grd = mctx.createLinearGradient(ox,oy, ox+cols*cellSize, oy+rows*cellSize); grd.addColorStop(0,'#0f1235'); grd.addColorStop(1,'#14173d'); mctx.fillStyle = grd; mctx.fillRect(ox-10, oy-10, cols*cellSize+20, rows*cellSize+20);
+  function drawPlayer(t){ const {ox,oy}=origin(); const cx=ox+state.player.px*cellSize+cellSize*0.5, cy=oy+state.player.py*cellSize+cellSize*0.5; const bob=Math.sin(t/240)*Math.min(6,cellSize*0.12); drawTrail(); // shadow
+    fctx.save(); fctx.fillStyle='#00000030'; fctx.beginPath(); fctx.ellipse(cx, cy+cellSize*0.18, cellSize*0.24, cellSize*0.12, 0, 0, Math.PI*2); fctx.fill(); fctx.restore(); drawBunny(fctx, cx, cy+bob, cellSize); }
 
-    // Draw walls
-    mctx.lineWidth = 2; mctx.strokeStyle = '#9bf9ff33'; mctx.shadowColor = '#86f9ff22'; mctx.shadowBlur=10; mctx.beginPath();
-    for(let y=0;y<rows;y++){
-      for(let x=0;x<cols;x++){
-        const c = state.maze.cell(x,y); const X = ox + x*cellSize; const Y = oy + y*cellSize;
-        if(c.walls[0]){ mctx.moveTo(X,Y); mctx.lineTo(X+cellSize,Y); }
-        if(c.walls[1]){ mctx.moveTo(X+cellSize,Y); mctx.lineTo(X+cellSize,Y+cellSize); }
-        if(c.walls[2]){ mctx.moveTo(X,Y+cellSize); mctx.lineTo(X+cellSize,Y+cellSize); }
-        if(c.walls[3]){ mctx.moveTo(X,Y); mctx.lineTo(X,Y+cellSize); }
-      }
-    }
-    mctx.stroke(); mctx.shadowBlur=0;
+  function drawOptimal(){ const {ox,oy}=origin(); if(!state.optimalPath.length) return; mctx.save(); mctx.lineCap='round'; mctx.lineJoin='round'; mctx.strokeStyle='#ffde5bcc'; mctx.lineWidth=Math.max(2,cellSize*0.18); mctx.beginPath(); state.optimalPath.forEach((p,i)=>{const x=ox+p.x*cellSize+cellSize*0.5, y=oy+p.y*cellSize+cellSize*0.5; i? mctx.lineTo(x,y):mctx.moveTo(x,y);}); mctx.stroke(); mctx.restore(); }
 
-    // Start & Goal (vector den)
-    const startX = ox + cellSize*0.5; const startY = oy + cellSize*0.5;
-    const goalX  = ox + (cols-0.5)*cellSize; const goalY = oy + (rows-0.5)*cellSize;
-    mctx.fillStyle = '#6cf7ff33'; mctx.beginPath(); mctx.arc(startX, startY, cellSize*0.33, 0, Math.PI*2); mctx.fill();
-    currentSkin.den(mctx, goalX, goalY, cellSize);
-  }
+  // ---------- Input (keyboard + buttons) ----------
+  const KEYMAP={ArrowUp:[0,-1],ArrowRight:[1,0],ArrowDown:[0,1],ArrowLeft:[-1,0],KeyW:[0,-1],KeyD:[1,0],KeyS:[0,1],KeyA:[-1,0]};
+  window.addEventListener('keydown',e=>{ if(!state.running) return; const d=KEYMAP[e.code]; if(!d) return; e.preventDefault(); tryMove(d[0],d[1]); });
+  document.querySelectorAll('.pad button').forEach(b=> b.addEventListener('click',()=>{ if(!state.running) return; tryMove(+b.dataset.dx,+b.dataset.dy); }));
 
-  function drawTrail(){ if(!state.maze || state.path.length===0) return; const {ox,oy}=boardOrigin(); const pts = state.path.map(p=>({x:ox + p.x*cellSize + cellSize*0.5, y:oy + p.y*cellSize + cellSize*0.5})); pts.push({x:ox + state.player.px*cellSize + cellSize*0.5, y:oy + state.player.py*cellSize + cellSize*0.5}); fctx.save(); fctx.lineJoin='round'; fctx.lineCap='round'; fctx.strokeStyle = '#6cf7ff33'; fctx.lineWidth = Math.max(2, cellSize*0.28); fctx.beginPath(); for(let i=0;i<pts.length;i++){ const p=pts[i]; if(i===0) fctx.moveTo(p.x,p.y); else fctx.lineTo(p.x,p.y);} fctx.stroke(); fctx.strokeStyle = '#6cf7ffcc'; fctx.lineWidth = Math.max(2, cellSize*0.16); fctx.beginPath(); for(let i=0;i<pts.length;i++){ const p=pts[i]; if(i===0) fctx.moveTo(p.x,p.y); else fctx.lineTo(p.x,p.y);} fctx.stroke(); fctx.restore(); }
+  // ---------- Moves ----------
+  function tryMove(dx,dy){ if(state.player.moving) return; const c=state.maze.cell(state.player.gx,state.player.gy); const dir = dx===0&&dy===-1?0:dx===1&&dy===0?1:dx===0&&dy===1?2:3; if(c.walls[dir]) return; moveTo(state.player.gx+dx, state.player.gy+dy); }
+  function moveTo(nx,ny){ state.player.moving=true; state.moves++; updateLeft(); const sx=state.player.gx, sy=state.player.gy; const t0=now(), dur=140; const step=()=>{ const k=Math.min(1,(now()-t0)/dur), e=ease(k); state.player.px=lerp(sx,nx,e); state.player.py=lerp(sy,ny,e); if(k<1) requestAnimationFrame(step); else { state.player.gx=nx; state.player.gy=ny; state.player.px=nx; state.player.py=ny; state.player.moving=false; const L=state.path.length; if(L>=2 && state.path[L-2].x===nx && state.path[L-2].y===ny) state.path.pop(); else state.path.push({x:nx,y:ny}); checkWin(); } }; step(); }
 
-  function drawPlayer(t){ if(!state.maze) return; const {ox,oy}=boardOrigin(); const cx = ox + state.player.px*cellSize + cellSize*0.5; const cy = oy + state.player.py*cellSize + cellSize*0.5; const bob = Math.sin(t/240)*Math.min(6, cellSize*0.12); fctx.clearRect(0,0,fxCv.width,fxCv.height); drawTrail(); fctx.save(); fctx.fillStyle='#00000030'; fctx.beginPath(); fctx.ellipse(cx, cy+cellSize*0.18, cellSize*0.24, cellSize*0.12, 0, 0, Math.PI*2); fctx.fill(); fctx.restore(); currentSkin.pet(fctx, cx, cy + bob, cellSize); }
+  // ---------- Shortest path ----------
+  function shortestPath(){ const {cols,rows}=state.maze; const goal={x:cols-1,y:rows-1}; const dist=Array.from({length:rows},()=>Array(cols).fill(Infinity)); const prev=Array.from({length:rows},()=>Array(cols).fill(null)); const q=[{x:0,y:0}]; dist[0][0]=0; while(q.length){ const {x,y}=q.shift(); if(x===goal.x && y===goal.y) break; const c=state.maze.cell(x,y); const neigh=[[0,-1,0],[1,0,1],[0,1,2],[-1,0,3]]; for(const [dx,dy,wi] of neigh){ const nx=x+dx, ny=y+dy; if(nx<0||ny<0||nx>=cols||ny>=rows) continue; if(c.walls[wi]) continue; const nc=state.maze.cell(nx,ny); const wj=(wi+2)%4; if(nc.walls[wj]) continue; if(dist[ny][nx]===Infinity){ dist[ny][nx]=dist[y][x]+1; prev[ny][nx]={x,y}; q.push({x:nx,y:ny}); } } }
+    // reconstruct
+    const path=[]; let cur={x:goal.x,y:goal.y}; if(dist[cur.y][cur.x]===Infinity) return {len:Infinity, path:[]}; while(cur){ path.push(cur); cur=prev[cur.y][cur.x]; } path.reverse(); return {len:dist[goal.y][goal.x], path}; }
 
-  // ------- Input (Keyboard always active) -------
-  const KEYMAP = {ArrowUp:[0,-1], ArrowRight:[1,0], ArrowDown:[0,1], ArrowLeft:[-1,0], KeyW:[0,-1], KeyD:[1,0], KeyS:[0,1], KeyA:[-1,0]};
-  window.addEventListener('keydown', (e)=>{ if(!state.running) return; const dir = KEYMAP[e.code]; if(!dir) return; e.preventDefault(); tryMove(dir[0], dir[1]); });
-
-  // Swipe mode (simple flick detection)
-  let touchStart=null; const stageEl = document.getElementById('stage');
-  stageEl.addEventListener('touchstart', (e)=>{ if(state.mode!=='swipe') return; const t=e.changedTouches[0]; touchStart={x:t.clientX,y:t.clientY,t:now()}; });
-  stageEl.addEventListener('touchend', (e)=>{ if(state.mode!=='swipe' || !touchStart) return; const t=e.changedTouches[0]; const dx=t.clientX-touchStart.x; const dy=t.clientY-touchStart.y; const adx=Math.abs(dx), ady=Math.abs(dy); const thresh=24; if(adx<thresh && ady<thresh) { touchStart=null; return; } if(adx>ady) tryMove(dx>0?1:-1,0); else tryMove(0, dy>0?1:-1); touchStart=null; });
-
-  // On-screen arrows
-  qsa('.pad button').forEach(b=>{ b.addEventListener('click',()=>{ if(!state.running) return; const dx=+b.dataset.dx, dy=+b.dataset.dy; tryMove(dx,dy); }); });
-
-  // Mode toggle buttons (only Swipe / On‑screen arrows)
-  const controlsEl = document.getElementById('controls');
-  const modeButtons = { swipe: document.getElementById('mode-swipe'), arrows: document.getElementById('mode-arrows') };
-  function setMode(m){ state.mode=m; Object.values(modeButtons).forEach(x=>x.classList.remove('active')); modeButtons[m].classList.add('active'); const show = (m==='arrows'); controlsEl.classList.toggle('show', show); fitCell(); }
-  Object.entries(modeButtons).forEach(([m,btn])=>{ btn.addEventListener('click', ()=> setMode(m)); });
-
-  // ------- Movement -------
-  function tryMove(dx,dy){ if(state.player.moving) return; const {gx,gy}=state.player; const c=state.maze.cell(gx,gy); const dirIdx = dx===0 && dy===-1 ? 0 : dx===1 && dy===0 ? 1 : dx===0 && dy===1 ? 2 : 3; if(c.walls[dirIdx]) return; const nx=clamp(gx+dx,0,state.maze.cols-1), ny=clamp(gy+dy,0,state.maze.rows-1); moveTo(nx,ny); }
-  function moveTo(nx,ny){ state.player.moving = true; state.moves++; updateMoves(); updateLeft(); const startX=state.player.gx, startY=state.player.gy; const duration = 140; const t0 = now(); const tick = ()=>{ const t=now()-t0; const k=Math.min(1,t/duration); const e=ease(k); state.player.px=lerp(startX,nx,e); state.player.py=lerp(startY,ny,e); if(k<1){ requestAnimationFrame(tick);} else { state.player.gx=nx; state.player.gy=ny; state.player.px=nx; state.player.py=ny; state.player.moving=false; const L = state.path.length; if(L>=2 && state.path[L-2].x===nx && state.path[L-2].y===ny){ state.path.pop(); } else { state.path.push({x:nx,y:ny}); } checkWin(); } }; tick(); }
-
-  // ------- Win, Best, XP / Levels -------
-  function bestKey(){ return `maze-best-${state.diff}${preferLandscape()?-"-land":"-port"}`; }
-  function loadBest(){ return +localStorage.getItem(bestKey()) || 0; }
-  function saveBest(ms){ const cur = loadBest(); if(!cur || ms<cur) localStorage.setItem(bestKey(), String(ms)); }
-
-  function xpKey(){ return 'maze-xp-total'; }
-  function loadXP(){ return +localStorage.getItem(xpKey()) || 0; }
-  function saveXP(v){ localStorage.setItem(xpKey(), String(v)); }
-  function xpNeedFor(level){ return 100 + (level-1)*50; } // 100,150,200,...
-  function levelFromXP(total){ let lvl=1, rem=total, need=xpNeedFor(lvl); while(rem>=need){ rem-=need; lvl++; need=xpNeedFor(lvl); } return {level:lvl, into:rem, need}; }
-  function updateLevelUI(){ const {level,into,need}=levelFromXP(state.xp); levelEl.textContent=level; xpProgEl.textContent=`${into}/${need}`; }
-
-  function computeXPGain(elapsedMs){ const base=dimsFor(state.diff).xpBase; const delta = state.moves - state.optimalMoves; const efficiency = Math.max(0, -delta) * 10; const sec = Math.floor(elapsedMs/1000); const timeBonus = Math.max(0, 40 - Math.min(40, sec)); return base + efficiency + timeBonus; }
-  function grantXP(n){ state.xp = loadXP() + n; saveXP(state.xp); updateLevelUI(); }
-
-  // ------- UI refs -------
-  const timeEl = document.getElementById('time');
-  const movesEl = document.getElementById('moves');
-  const bestEl = document.getElementById('best');
-  const leftEl = document.getElementById('left');
-  const levelEl = document.getElementById('level');
-  const xpProgEl = document.getElementById('xpProg');
-  const banner = document.getElementById('banner');
-  const bannerText = document.getElementById('bannerText');
-  function updateMoves(){ movesEl.textContent = state.moves; }
+  // ---------- UI ----------
+  const leftEl=document.getElementById('left');
   function updateLeft(){ leftEl.textContent = state.optimalMoves - state.moves; }
-  function updateBest(){ const b=loadBest(); bestEl.textContent = b? fmtTime(b): '—'; }
-  function startTimer(){ state.startedAt = now(); state.finishedAt = 0; }
-  function stopTimer(){ state.finishedAt = now(); return state.finishedAt - state.startedAt; }
 
-  // ------- Share link -------
-  function buildShareURL(){ const url = new URL(location.href); url.searchParams.set('diff', state.diff); url.searchParams.set('mode', state.mode); url.searchParams.set('v','1'); return url.toString(); }
-  document.getElementById('share').addEventListener('click', async ()=>{
-    const link = buildShareURL();
-    try{ await navigator.clipboard.writeText(link); toast('Link copied! Send it to a friend.'); }
-    catch{ prompt('Copy this link:', link); }
-  });
-  function toast(msg){ bannerText.textContent = msg; banner.classList.add('show'); setTimeout(()=>banner.classList.remove('show'), 1600); }
-
-  // ------- Game Flow -------
-  function newGame(){ const dims = dimsFor(state.diff); currentSkin = SKINS[Math.floor(Math.random()*SKINS.length)]; state.maze = new Maze(dims.cols, dims.rows, dims.braid); fitCell(); state.player={gx:0, gy:0, px:0, py:0, moving:false}; state.goal={x:state.maze.cols-1, y:state.maze.rows-1}; state.path=[{x:0,y:0}]; state.moves=0; updateMoves(); updateBest(); state.optimalMoves = shortestMoves(); updateLeft(); drawStatic(); startTimer(); state.running=true; banner.classList.remove('show'); document.getElementById('title').style.display='none'; }
-  function restart(){ state.player={gx:0, gy:0, px:0, py:0, moving:false}; state.path=[{x:0,y:0}]; state.moves=0; updateMoves(); state.optimalMoves = shortestMoves(); updateLeft(); startTimer(); banner.classList.remove('show'); }
-  function checkWin(){ if(state.player.gy===state.goal.y && state.player.gx===state.goal.x){ const t = stopTimer(); saveBest(t); updateBest(); const xp = computeXPGain(t); grantXP(xp); celebrate(); const delta = state.optimalMoves - state.moves; const {level,into,need}=levelFromXP(state.xp); bannerText.textContent = `Your ${currentSkin.name} reached the den in ${fmtTime(t)}. Moves: ${state.moves} (target ${state.optimalMoves}, left ${delta}). +${xp} XP → Lvl ${level} (${into}/${need})`; banner.classList.add('show'); state.running=false; } }
-
-  // ------- FX: Confetti -------
-  const sparks=[]; function celebrate(){ const count=200; const {cols,rows}=state.maze; const {ox,oy}=boardOrigin(); const cx=ox+state.goal.x*cellSize+cellSize*0.5; const cy=oy+state.goal.y*cellSize+cellSize*0.5; for(let i=0;i<count;i++){ const ang=Math.random()*Math.PI*2; const spd=2+Math.random()*5; const life=600+Math.random()*900; sparks.push({x:cx,y:cy,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd-2,g:0.03+Math.random()*0.05,life,t:0}); } }
-  function drawSparks(dt){ fctx.globalCompositeOperation='lighter'; for(let i=sparks.length-1;i>=0;i--){ const p=sparks[i]; p.t+=dt; p.x+=p.vx; p.y+=p.vy; p.vy+=p.g; if(p.t>p.life){sparks.splice(i,1); continue;} const a=1-(p.t/p.life); fctx.fillStyle=`hsla(${(p.t*0.2)%360},90%,60%,${a})`; fctx.beginPath(); fctx.arc(p.x,p.y,2+3*a,0,Math.PI*2); fctx.fill(); } fctx.globalCompositeOperation='source-over'; }
-
-  // ------- Help toggle -------
-  const help = document.getElementById('help'); help.addEventListener('click', ()=> help.classList.toggle('open'));
-
-  // ------- Controls -------
-  document.getElementById('difficulty').addEventListener('change', (e)=>{ state.diff=e.target.value; newGame(); });
-  document.getElementById('new').addEventListener('click', newGame);
+  document.getElementById('difficulty').addEventListener('change', e=>{ state.diff=e.target.value; newMaze(); });
   document.getElementById('restart').addEventListener('click', restart);
 
-  // Deep-link params
-  (function applyParams(){
-    const d = params.get('diff'); if(d && DIFFS[d]){ state.diff=d; qs('#difficulty').value=d; }
-    const m = params.get('mode'); if(m && (m==='swipe'||m==='arrows')) setMode(m); else setMode(isMobile()? 'swipe':'swipe');
-  })();
+  // ---------- Game flow ----------
+  function newMaze(){ const d=DIFFS[state.diff]; state.maze=new Maze(d.cols,d.rows,d.braid); fitCell(); state.player={gx:0,gy:0,px:0,py:0,moving:false}; state.goal={x:state.maze.cols-1,y:state.maze.rows-1}; state.path=[{x:0,y:0}]; const sp=shortestPath(); state.optimalMoves=sp.len; state.optimalPath=sp.path; state.moves=0; state.showOptimal=false; updateLeft(); drawStatic(); state.running=true; }
+  function restart(){ state.player={gx:0,gy:0,px:0,py:0,moving:false}; state.path=[{x:0,y:0}]; state.moves=0; state.showOptimal=false; updateLeft(); }
+  function checkWin(){ if(state.player.gx===state.goal.x && state.player.gy===state.goal.y){ state.running=false; if(state.moves>state.optimalMoves){ state.showOptimal=true; drawStatic(); } } }
 
-  // ------- Main Loop -------
-  let lastT = now();
-  function loop(){ const t=now(); const dt=t-lastT; lastT=t; drawStatic(); drawPlayer(t); drawSparks(dt); if(state.running){ timeEl.textContent = fmtTime(t - state.startedAt); } requestAnimationFrame(loop); }
+  // ---------- Loop ----------
+  let last=now(); function loop(){ const t=now(); last=t; drawStatic(); drawPlayer(t); requestAnimationFrame(loop); }
 
-  // ------- Shortest path (BFS) -------
-  function shortestMoves(){ const {cols,rows}=state.maze; const start={x:0,y:0}; const goal={x:cols-1,y:rows-1}; const q=[start]; const dist=Array.from({length:rows},()=>Array(cols).fill(Infinity)); dist[0][0]=0; while(q.length){ const {x,y}=q.shift(); if(x===goal.x && y===goal.y) return dist[y][x]; const c=state.maze.cell(x,y); const neigh=[[0,-1,0],[1,0,1],[0,1,2],[-1,0,3]]; for(const [dx,dy,wi] of neigh){ const nx=x+dx, ny=y+dy; if(nx<0||ny<0||nx>=cols||ny>=rows) continue; if(c.walls[wi]) continue; const nc=state.maze.cell(nx,ny); const wj = (wi+2)%4; if(nc.walls[wj]) continue; if(dist[ny][nx]===Infinity){ dist[ny][nx]=dist[y][x]+1; q.push({x:nx,y:ny}); } } } return Infinity; }
+  // ---------- Self tests ----------
+  function selfTests(){ const sp=shortestPath(); console.assert(Number.isFinite(sp.len) && sp.len>0, 'BFS shortest path exists'); }
 
-  // ------- Minimal self-tests (console) -------
-  function selfTests(){ try{ console.group('Neon Labyrinth self-tests'); startTimer(); const d = stopTimer(); console.assert(typeof d === 'number' && d >= 0, 'Timer returns a non-negative number'); console.assert(Array.isArray(state.path) && state.path.length === 1, 'Initial path starts with one node'); const sm = shortestMoves(); console.assert(Number.isFinite(sm) && sm > 0, 'Shortest path length is finite and positive'); const dims = dimsFor('medium'); console.assert(Number.isInteger(dims.cols) && Number.isInteger(dims.rows), 'dimsFor returns ints'); console.groupEnd(); }catch(err){ console.error('Self-tests threw', err); } }
-
-  // Initialize
   window.addEventListener('resize', resize);
-  state.xp = loadXP(); updateLevelUI();
-  resize(); newGame(); selfTests(); loop();
+  resize(); newMaze(); selfTests(); loop();
 })();
 </script>
 </body>
 </html>
+
