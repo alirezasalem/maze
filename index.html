@@ -192,22 +192,38 @@
     ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
   }
   function drawBunny(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r); ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.ellipse(x-r*0.35,y-r*1.1,r*0.28,r*0.5,-0.2,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(x+r*0.35,y-r*1.1,r*0.28,r*0.5, 0.2,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#263238'; ctx.beginPath(); ctx.arc(x-r*0.3,y-r*0.05,r*0.08,0,Math.PI*2); ctx.arc(x+r*0.3,y-r*0.05,r*0.08,0,Math.PI*2); ctx.fill(); }
-  function drawCat(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#fff4d6','#ffd18a'); }
-  function drawFox(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#ffd3b0','#ff8c42'); }
-  function drawBear(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#ffe6d1','#a06b49'); }
+  function drawCat(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#fff4d6','#ffd18a'); // ears
+    ctx.fillStyle='#ffd18a'; ctx.beginPath(); ctx.moveTo(x-r*0.55,y-r*0.05); ctx.lineTo(x-r*0.2,y-r*0.75); ctx.lineTo(x-r*0.02,y-r*0.05); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(x+r*0.55,y-r*0.05); ctx.lineTo(x+r*0.2,y-r*0.75); ctx.lineTo(x+r*0.02,y-r*0.05); ctx.closePath(); ctx.fill(); // eyes
+    ctx.fillStyle='#333'; ctx.beginPath(); ctx.arc(x-r*0.25,y-r*0.05,r*0.08,0,Math.PI*2); ctx.arc(x+r*0.25,y-r*0.05,r*0.08,0,Math.PI*2); ctx.fill(); }
+  function drawFox(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#ffd3b0','#ff8c42'); // ears
+    ctx.fillStyle='#ff8c42'; ctx.beginPath(); ctx.moveTo(x-r*0.55,y-r*0.05); ctx.lineTo(x-r*0.22,y-r*0.8); ctx.lineTo(x-r*0.02,y-r*0.05); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(x+r*0.55,y-r*0.05); ctx.lineTo(x+r*0.22,y-r*0.8); ctx.lineTo(x+r*0.02,y-r*0.05); ctx.closePath(); ctx.fill(); // muzzle
+    ctx.fillStyle='#fff7e8'; ctx.beginPath(); ctx.ellipse(x,y+r*0.2,r*0.35,r*0.22,0,0,Math.PI*2); ctx.fill(); // nose
+    ctx.fillStyle='#333'; ctx.beginPath(); ctx.arc(x,y+r*0.05,r*0.06,0,Math.PI*2); ctx.fill(); }
+  function drawBear(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#ffe6d1','#a06b49'); // ears
+    ctx.fillStyle='#a06b49'; ctx.beginPath(); ctx.arc(x-r*0.45,y-r*0.35,r*0.18,0,Math.PI*2); ctx.arc(x+r*0.45,y-r*0.35,r*0.18,0,Math.PI*2); ctx.fill(); // snout
+    ctx.fillStyle='#f7e1c8'; ctx.beginPath(); ctx.ellipse(x,y+r*0.2,r*0.32,r*0.22,0,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#333'; ctx.beginPath(); ctx.arc(x,y+r*0.08,r*0.06,0,Math.PI*2); ctx.fill(); }
   function drawPanda(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#ffffff','#dfe6f0'); ctx.fillStyle='#222'; ctx.beginPath(); ctx.ellipse(x-r*0.38,y-r*0.3,r*0.22,r*0.14,0,0,Math.PI*2); ctx.ellipse(x+r*0.38,y-r*0.3,r*0.22,r*0.14,0,0,Math.PI*2); ctx.fill(); }
-  function drawPenguin(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#dff3ff','#5aa9e6'); }
-  function drawFrog(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#e9ffd6','#5dc255'); }
-  function drawKoala(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#f0f3f8','#9aa4b2'); }
-  function drawPig(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#ffe1ea','#ff9bbb'); }
-  function drawDog(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#fff2e0','#d5a679'); }
+  function drawPenguin(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#dff3ff','#5aa9e6'); // belly
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.ellipse(x,y+r*0.15,r*0.28,r*0.32,0,0,Math.PI*2); ctx.fill(); // beak
+    ctx.fillStyle = '#f7a531'; ctx.beginPath(); ctx.moveTo(x, y+r*0.02); ctx.lineTo(x-r*0.14, y+r*0.1); ctx.lineTo(x+r*0.14, y+r*0.1); ctx.closePath(); ctx.fill(); // eyes
+    ctx.fillStyle='#0f172a'; ctx.beginPath(); ctx.arc(x-r*0.22,y-r*0.05,r*0.07,0,Math.PI*2); ctx.arc(x+r*0.22,y-r*0.05,r*0.07,0,Math.PI*2); ctx.fill(); }
+  function drawFrog(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#e9ffd6','#5dc255'); // eyes on top
+    ctx.fillStyle = '#d9f99d'; ctx.beginPath(); ctx.arc(x-r*0.32,y-r*0.45,r*0.16,0,Math.PI*2); ctx.arc(x+r*0.32,y-r*0.45,r*0.16,0,Math.PI*2); ctx.fill(); ctx.fillStyle = '#1f2937'; ctx.beginPath(); ctx.arc(x-r*0.32,y-r*0.45,r*0.07,0,Math.PI*2); ctx.arc(x+r*0.32,y-r*0.45,r*0.07,0,Math.PI*2); ctx.fill(); }
+  function drawKoala(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#f0f3f8','#9aa4b2'); // ears
+    ctx.fillStyle='#9aa4b2'; ctx.beginPath(); ctx.arc(x-r*0.5,y-r*0.35,r*0.22,0,Math.PI*2); ctx.arc(x+r*0.5,y-r*0.35,r*0.22,0,Math.PI*2); ctx.fill(); // nose
+    ctx.fillStyle = '#4b5563'; ctx.beginPath(); ctx.ellipse(x,y+r*0.05,r*0.18,r*0.12,0,0,Math.PI*2); ctx.fill(); }
+  function drawPig(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#ffe1ea','#ff9bbb'); // snout
+    ctx.fillStyle = '#ff9bbb'; ctx.beginPath(); ctx.ellipse(x,y+r*0.12,r*0.22,r*0.16,0,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#c2185b'; ctx.beginPath(); ctx.arc(x-r*0.08,y+r*0.12,r*0.04,0,Math.PI*2); ctx.arc(x+r*0.08,y+r*0.12,r*0.04,0,Math.PI*2); ctx.fill(); }
+  function drawDog(ctx,x,y,s){ var r=s*0.42; drawHead(ctx,x,y,r,'#fff2e0','#d5a679'); // floppy ear + eye spot
+    ctx.fillStyle='#d5a679'; ctx.beginPath(); ctx.ellipse(x-r*0.5,y-r*0.2,r*0.18,r*0.28,-0.5,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#6b4f2a'; ctx.beginPath(); ctx.arc(x-r*0.18,y-r*0.05,r*0.12,0,Math.PI*2); ctx.fill(); // nose
+    ctx.fillStyle='#3f2f1a'; ctx.beginPath(); ctx.arc(x,y+r*0.05,r*0.06,0,Math.PI*2); ctx.fill(); }
   var CHAR_SET=[drawBunny,drawCat,drawFox,drawBear,drawPanda,drawPenguin,drawFrog,drawKoala,drawPig,drawDog];
 
   function drawHouse(ctx,x,y,s){
     ctx.save(); var w=s*0.72, h=s*0.52;
     ctx.fillStyle='#e3edf9'; ctx.fillRect(x-w/2, y-h/2, w, h);
     ctx.fillStyle='#ff6a6a'; ctx.beginPath(); ctx.moveTo(x-w*0.58, y-h/2); ctx.lineTo(x, y-h/2 - s*0.38); ctx.lineTo(x+w*0.58, y-h/2); ctx.closePath(); ctx.fill();
-    ctx.fillStyle='#1f2545'; ctx.fillRect(x-w*0.08, y-h/2 + h*0.56, w*0.16, h*0.44);
+    ctx.fillStyle = '#1f2545'; ctx.fillRect(x-w*0.08, y-h/2 + h*0.56, w*0.16, h*0.44);
     ctx.fillStyle='#c7d9ff'; ctx.fillRect(x-w*0.28, y-h*0.12, w*0.18, h*0.18); ctx.fillRect(x+w*0.10, y-h*0.12, w*0.18, h*0.18);
     ctx.restore();
   }
@@ -545,6 +561,14 @@
     // 2) Wall reciprocity test
     var ok=true; for(var y=0;y<state.maze.rows;y++){ for(var x=0;x<state.maze.cols;x++){ var c=state.maze.cell(x,y); var nb=[[x,y-1,0,2],[x+1,y,1,3],[x,y+1,2,0],[x-1,y,3,1]]; for(var i=0;i<nb.length;i++){ var nx=nb[i][0], ny=nb[i][1], wi=nb[i][2], wj=nb[i][3]; if(nx<0||ny<0||nx>=state.maze.cols||ny>=state.maze.rows) continue; var d=state.maze.cell(nx,ny); if(c.walls[wi]!==d.walls[wj]) ok=false; }} }
     console.assert(ok, 'Walls are reciprocal between adjacent cells');
+    // 3) Character set sanity
+    console.assert(Array.isArray(CHAR_SET) && CHAR_SET.length===10, '10 characters present');
+    console.assert(typeof state.drawChar === 'function', 'drawChar is a function');
+    // 4) Try drawing each character to an offscreen canvas (smoke test)
+    try{
+      var cv=document.createElement('canvas'); cv.width=cv.height=64; var ctx=cv.getContext('2d');
+      CHAR_SET.forEach(function(fn){ fn(ctx,32,32,24); });
+    }catch(e){ console.error('Character draw failed', e); }
   }
 
   window.addEventListener('resize', resize);
